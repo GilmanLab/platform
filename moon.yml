@@ -1,0 +1,21 @@
+layer: 'scaffolding'
+
+project:
+  title: 'GilmanLab Platform'
+  description: 'Reusable platform components, shared manifests, and automation for GilmanLab.'
+  owner: 'GilmanLab'
+  maintainers:
+    - 'josh'
+
+workspace:
+  inheritedTasks:
+    include: []
+
+tasks:
+  check:
+    command: 'echo "No repository-specific automated checks are defined yet."'
+    toolchains: 'system'
+    inputs: []
+    options:
+      cache: false
+      runInCI: true

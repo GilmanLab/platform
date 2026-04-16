@@ -1,0 +1,9 @@
+projects:
+  sources:
+    root: '.'
+
+defaultProject: 'root'
+
+vcs:
+  defaultBranch: 'master'
+  provider: 'github'
