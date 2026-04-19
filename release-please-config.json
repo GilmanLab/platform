@@ -8,24 +8,30 @@
       "component": "cilium",
       "include-component-in-tag": true,
       "changelog-path": "CHANGELOG.md",
-      "extra-files": [
-        "bootstrap/cilium/VERSION"
+      "version-file": "VERSION",
+      "exclude-paths": [
+        "CHANGELOG.md",
+        "VERSION"
       ]
     },
     "bootstrap/argocd": {
       "component": "argocd",
       "include-component-in-tag": true,
       "changelog-path": "CHANGELOG.md",
-      "extra-files": [
-        "bootstrap/argocd/VERSION"
+      "version-file": "VERSION",
+      "exclude-paths": [
+        "CHANGELOG.md",
+        "VERSION"
       ]
     },
     "bootstrap/kro": {
       "component": "kro",
       "include-component-in-tag": true,
       "changelog-path": "CHANGELOG.md",
-      "extra-files": [
-        "bootstrap/kro/VERSION"
+      "version-file": "VERSION",
+      "exclude-paths": [
+        "CHANGELOG.md",
+        "VERSION"
       ]
     }
   },
