@@ -1,0 +1,29 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kro
+  namespace: argocd
+spec:
+  project: default
+  sources:
+    - repoURL: registry.k8s.io/kro/charts
+      chart: kro
+      targetRevision: 0.9.1
+      helm:
+        releaseName: kro
+        valueFiles:
+          - $values/bootstrap/kro/values/base.yaml
+          - $values/bootstrap/kro/values/full-overrides.yaml
+    - repoURL: https://github.com/GilmanLab/platform.git
+      targetRevision: kro-v1.0.0
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kro-system
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true

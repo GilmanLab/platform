@@ -5,7 +5,7 @@
 #   "PyYAML>=6.0,<7",
 # ]
 # ///
-"""Render and validate tracked bootstrap manifests."""
+"""Render and validate tracked bootstrap manifests from repo conventions."""
 
 from __future__ import annotations
 
@@ -51,6 +51,78 @@ class Component:
     create_namespace: bool
     include_crds: bool
     renders: dict[str, RenderLane]
+
+
+COMPONENT_METADATA: dict[str, dict[str, Any]] = {
+    "argocd": {
+        "chart_ref": "oci://ghcr.io/argoproj/argo-helm/argo-cd",
+        "chart_version": "9.5.2",
+        "chart_digest": "sha256:91688034f0b2b52f022fb15c0e3ee4207244275039597debbbebc3c921f3e9aa",
+        "release_name": "argocd",
+        "namespace": "argocd",
+        "create_namespace": True,
+        "include_crds": True,
+        "renders": {
+            "bootstrap": {
+                "tracked": True,
+                "include_hooks": True,
+                "strip_hook_annotations": True,
+                "values": ("values/base.yaml", "values/bootstrap-overrides.yaml"),
+                "output": "render/bootstrap.yaml",
+            },
+            "full": {
+                "tracked": True,
+                "include_hooks": True,
+                "strip_hook_annotations": True,
+                "values": ("values/base.yaml", "values/full-overrides.yaml"),
+                "output": "render/full.yaml",
+            },
+        },
+    },
+    "cilium": {
+        "chart_ref": "oci://quay.io/cilium/charts/cilium",
+        "chart_version": "1.19.3",
+        "chart_digest": "sha256:0683e1fc672e0c6587a8d8d43f6845430aaaed47e36dacbe77e3e621ea7a4c69",
+        "release_name": "cilium",
+        "namespace": "kube-system",
+        "create_namespace": False,
+        "include_crds": True,
+        "renders": {
+            "bootstrap": {
+                "tracked": True,
+                "include_hooks": False,
+                "strip_hook_annotations": False,
+                "values": ("values/base.yaml", "values/bootstrap-overrides.yaml"),
+                "output": "render/bootstrap.yaml",
+            },
+            "full": {
+                "tracked": False,
+                "include_hooks": False,
+                "strip_hook_annotations": False,
+                "values": ("values/base.yaml", "values/full-overrides.yaml"),
+                "output": ".state/render/full.yaml",
+            },
+        },
+    },
+    "kro": {
+        "chart_ref": "oci://registry.k8s.io/kro/charts/kro",
+        "chart_version": "0.9.1",
+        "chart_digest": "sha256:37b00031550322ede84caa305024ada4dcc30cfe9fa3375822be2e212fa9411f",
+        "release_name": "kro",
+        "namespace": "kro-system",
+        "create_namespace": True,
+        "include_crds": True,
+        "renders": {
+            "full": {
+                "tracked": True,
+                "include_hooks": False,
+                "strip_hook_annotations": False,
+                "values": ("values/base.yaml", "values/full-overrides.yaml"),
+                "output": "render/full.yaml",
+            },
+        },
+    },
+}
 
 
 def main() -> int:
@@ -113,108 +185,36 @@ def run(cmd: list[str]) -> str:
 
 def load_components() -> dict[str, Component]:
     components: dict[str, Component] = {}
-    for source_path in sorted(BOOTSTRAP_DIR.glob("*/source.yaml")):
-        directory = source_path.parent
-        data = load_yaml_file(source_path)
+    for name, metadata in sorted(COMPONENT_METADATA.items()):
+        directory = BOOTSTRAP_DIR / name
+        if not directory.is_dir():
+            raise BootstrapError(f"bootstrap component directory does not exist: {directory}")
 
-        chart = require_mapping(data, "chart", source_path)
-        renders_raw = require_mapping(data, "renders", source_path)
         renders: dict[str, RenderLane] = {}
-        for render_name, render_data in renders_raw.items():
-            if not isinstance(render_name, str):
-                raise BootstrapError(f"{source_path}: render key must be a string")
-            if not isinstance(render_data, dict):
-                raise BootstrapError(f"{source_path}: render {render_name!r} must be a mapping")
-
-            values = render_data.get("values")
-            if not isinstance(values, list) or not values or not all(isinstance(item, str) for item in values):
-                raise BootstrapError(f"{source_path}: render {render_name!r} must define a non-empty values list")
-
-            output = render_data.get("output")
-            if not isinstance(output, str) or not output:
-                raise BootstrapError(f"{source_path}: render {render_name!r} is missing output")
-
-            tracked = render_data.get("tracked")
-            if not isinstance(tracked, bool):
-                raise BootstrapError(f"{source_path}: render {render_name!r} must define tracked as true/false")
-
-            include_hooks = render_data.get("includeHooks", False)
-            if not isinstance(include_hooks, bool):
-                raise BootstrapError(
-                    f"{source_path}: render {render_name!r} must define includeHooks as true/false when set"
-                )
-
-            strip_hook_annotations = render_data.get("stripHookAnnotations", False)
-            if not isinstance(strip_hook_annotations, bool):
-                raise BootstrapError(
-                    f"{source_path}: render {render_name!r} must define stripHookAnnotations as true/false when set"
-                )
-
+        for render_name, render_data in metadata["renders"].items():
             renders[render_name] = RenderLane(
                 name=render_name,
-                tracked=tracked,
-                include_hooks=include_hooks,
-                strip_hook_annotations=strip_hook_annotations,
-                values=tuple(directory / item for item in values),
-                output=directory / output,
+                tracked=render_data["tracked"],
+                include_hooks=render_data["include_hooks"],
+                strip_hook_annotations=render_data["strip_hook_annotations"],
+                values=tuple(directory / item for item in render_data["values"]),
+                output=directory / render_data["output"],
             )
 
-        component = Component(
-            name=require_string(data, "name", source_path),
+        components[name] = Component(
+            name=name,
             directory=directory,
-            chart_ref=require_string(chart, "ref", source_path),
-            chart_version=require_string(chart, "version", source_path),
-            chart_digest=require_string(chart, "digest", source_path),
-            release_name=require_string(data, "releaseName", source_path),
-            namespace=require_string(data, "namespace", source_path),
-            create_namespace=require_bool(data, "createNamespace", source_path),
-            include_crds=require_bool(data, "includeCRDs", source_path),
+            chart_ref=metadata["chart_ref"],
+            chart_version=metadata["chart_version"],
+            chart_digest=metadata["chart_digest"],
+            release_name=metadata["release_name"],
+            namespace=metadata["namespace"],
+            create_namespace=metadata["create_namespace"],
+            include_crds=metadata["include_crds"],
             renders=renders,
         )
 
-        if component.name in components:
-            raise BootstrapError(f"duplicate component name: {component.name}")
-        components[component.name] = component
-
-    if not components:
-        raise BootstrapError(f"no bootstrap component definitions found under {BOOTSTRAP_DIR}")
-
     return components
-
-
-def load_yaml_file(path: Path) -> dict[str, Any]:
-    try:
-        with path.open("r", encoding="utf-8") as fh:
-            data = yaml.safe_load(fh)
-    except OSError as exc:
-        raise BootstrapError(f"failed to read {path}: {exc}") from exc
-    except yaml.YAMLError as exc:
-        raise BootstrapError(f"failed to parse YAML in {path}: {exc}") from exc
-
-    if not isinstance(data, dict):
-        raise BootstrapError(f"{path}: top-level YAML document must be a mapping")
-    return data
-
-
-def require_mapping(data: dict[str, Any], key: str, path: Path) -> dict[str, Any]:
-    value = data.get(key)
-    if not isinstance(value, dict):
-        raise BootstrapError(f"{path}: missing or invalid mapping field {key!r}")
-    return value
-
-
-def require_string(data: dict[str, Any], key: str, path: Path) -> str:
-    value = data.get(key)
-    if not isinstance(value, str) or not value:
-        raise BootstrapError(f"{path}: missing or invalid string field {key!r}")
-    return value
-
-
-def require_bool(data: dict[str, Any], key: str, path: Path) -> bool:
-    value = data.get(key)
-    if not isinstance(value, bool):
-        raise BootstrapError(f"{path}: missing or invalid boolean field {key!r}")
-    return value
 
 
 def select_components(components: dict[str, Component], name: str | None) -> list[Component]:
@@ -319,7 +319,7 @@ def render_lane_text(component: Component, lane: RenderLane) -> str:
         documents.insert(0, namespace_document(component.namespace))
 
     header = [
-        f"# Generated by scripts/render_bootstrap.py; do not edit by hand.",
+        "# Generated by scripts/render_bootstrap.py; do not edit by hand.",
         f"# Component: {component.name}",
         f"# Render lane: {lane.name}",
         f"# Source: {component.chart_ref}@{component.chart_version}",
