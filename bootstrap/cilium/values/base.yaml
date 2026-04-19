@@ -2,6 +2,10 @@ ipam:
   mode: kubernetes
 
 kubeProxyReplacement: true
+bgpControlPlane:
+  enabled: true
+
+defaultLBServiceIPAM: none
 
 securityContext:
   capabilities:

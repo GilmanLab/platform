@@ -119,13 +119,19 @@ data:
   enable-hubble: 'false'
   ipam: kubernetes
   ipam-cilium-node-update-rate: 15s
-  default-lb-service-ipam: lbipam
+  default-lb-service-ipam: none
   egress-gateway-reconciliation-trigger-interval: 1s
   enable-vtep: 'false'
   vtep-endpoint: ''
   vtep-cidr: ''
   vtep-mask: ''
   vtep-mac: ''
+  enable-bgp-control-plane: 'true'
+  bgp-secrets-namespace: kube-system
+  enable-bgp-control-plane-status-report: 'true'
+  bgp-router-id-allocation-mode: default
+  bgp-router-id-allocation-ip-pool: ''
+  enable-bgp-legacy-origin-attribute: 'false'
   packetization-layer-pmtud-mode: blackhole
   procfs: /host/proc
   bpf-root: /sys/fs/bpf
@@ -572,6 +578,23 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
+  name: cilium-bgp-control-plane-secrets
+  namespace: kube-system
+  labels:
+    app.kubernetes.io/part-of: cilium
+rules:
+- apiGroups:
+  - ''
+  resources:
+  - secrets
+  verbs:
+  - get
+  - list
+  - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
   name: cilium-tlsinterception-secrets
   namespace: cilium-secrets
   labels:
@@ -634,6 +657,22 @@ roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
   name: cilium-config-agent
+subjects:
+- kind: ServiceAccount
+  name: cilium
+  namespace: kube-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: cilium-bgp-control-plane-secrets
+  namespace: kube-system
+  labels:
+    app.kubernetes.io/part-of: cilium
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: cilium-bgp-control-plane-secrets
 subjects:
 - kind: ServiceAccount
   name: cilium
