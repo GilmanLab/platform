@@ -1,0 +1,16 @@
+kind: HelmBootstrapComponent
+name: kro
+chart:
+  ref: oci://registry.k8s.io/kro/charts/kro
+  version: 0.9.1
+  digest: sha256:37b00031550322ede84caa305024ada4dcc30cfe9fa3375822be2e212fa9411f
+releaseName: kro
+namespace: kro-system
+createNamespace: true
+includeCRDs: true
+renders:
+  install:
+    tracked: true
+    values:
+      - values/install.yaml
+    output: render/install.yaml
