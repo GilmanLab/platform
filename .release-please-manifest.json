@@ -1,5 +1,5 @@
 {
-  "bootstrap/cilium": "1.0.0",
+  "bootstrap/cilium": "1.1.0",
   "bootstrap/argocd": "1.0.1",
   "bootstrap/kro": "1.0.0"
 }
