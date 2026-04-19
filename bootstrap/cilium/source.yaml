@@ -1,0 +1,23 @@
+kind: HelmBootstrapComponent
+name: cilium
+chart:
+  ref: oci://quay.io/cilium/charts/cilium
+  version: 1.19.3
+  digest: sha256:0683e1fc672e0c6587a8d8d43f6845430aaaed47e36dacbe77e3e621ea7a4c69
+releaseName: cilium
+namespace: kube-system
+createNamespace: false
+includeCRDs: true
+renders:
+  public:
+    tracked: true
+    values:
+      - values/base.yaml
+      - values/public.yaml
+    output: render/public.yaml
+  private:
+    tracked: false
+    values:
+      - values/base.yaml
+      - values/private.yaml
+    output: .state/render/private.yaml

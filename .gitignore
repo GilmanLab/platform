@@ -66,6 +66,7 @@ coverage/
 docs/node_modules/
 docs/build/
 docs/.docusaurus/
+bootstrap/*/.state/
 
 # OS / editor
 .DS_Store

@@ -1,0 +1,74 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "release-type": "simple",
+  "include-v-in-tag": true,
+  "packages": {
+    "bootstrap/cilium": {
+      "component": "cilium",
+      "include-component-in-tag": true,
+      "changelog-path": "bootstrap/cilium/CHANGELOG.md",
+      "extra-files": [
+        "bootstrap/cilium/VERSION"
+      ]
+    },
+    "bootstrap/argocd": {
+      "component": "argocd",
+      "include-component-in-tag": true,
+      "changelog-path": "bootstrap/argocd/CHANGELOG.md",
+      "extra-files": [
+        "bootstrap/argocd/VERSION"
+      ]
+    },
+    "bootstrap/kro": {
+      "component": "kro",
+      "include-component-in-tag": true,
+      "changelog-path": "bootstrap/kro/CHANGELOG.md",
+      "extra-files": [
+        "bootstrap/kro/VERSION"
+      ]
+    }
+  },
+  "changelog-sections": [
+    {
+      "type": "feat",
+      "section": "Features"
+    },
+    {
+      "type": "fix",
+      "section": "Bug Fixes"
+    },
+    {
+      "type": "perf",
+      "section": "Performance"
+    },
+    {
+      "type": "revert",
+      "section": "Reverts"
+    },
+    {
+      "type": "docs",
+      "section": "Documentation",
+      "hidden": true
+    },
+    {
+      "type": "chore",
+      "section": "Maintenance",
+      "hidden": true
+    },
+    {
+      "type": "build",
+      "section": "Build",
+      "hidden": true
+    },
+    {
+      "type": "ci",
+      "section": "CI",
+      "hidden": true
+    },
+    {
+      "type": "test",
+      "section": "Tests",
+      "hidden": true
+    }
+  ]
+}

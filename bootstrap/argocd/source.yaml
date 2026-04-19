@@ -1,0 +1,16 @@
+kind: HelmBootstrapComponent
+name: argocd
+chart:
+  ref: oci://ghcr.io/argoproj/argo-helm/argo-cd
+  version: 9.5.2
+  digest: sha256:91688034f0b2b52f022fb15c0e3ee4207244275039597debbbebc3c921f3e9aa
+releaseName: argocd
+namespace: argocd
+createNamespace: true
+includeCRDs: true
+renders:
+  install:
+    tracked: true
+    values:
+      - values/install.yaml
+    output: render/install.yaml

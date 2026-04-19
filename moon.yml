@@ -13,9 +13,11 @@ workspace:
 
 tasks:
   check:
-    command: 'echo "No repository-specific automated checks are defined yet."'
+    command: 'uv run scripts/render_bootstrap.py validate'
     toolchains: 'system'
-    inputs: []
+    inputs:
+      - 'bootstrap/**/*'
+      - 'scripts/render_bootstrap.py'
     options:
       cache: false
       runInCI: true
