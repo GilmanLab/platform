@@ -2,11 +2,12 @@
   "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
   "release-type": "simple",
   "include-v-in-tag": true,
+  "separate-pull-requests": true,
   "packages": {
     "bootstrap/cilium": {
       "component": "cilium",
       "include-component-in-tag": true,
-      "changelog-path": "bootstrap/cilium/CHANGELOG.md",
+      "changelog-path": "CHANGELOG.md",
       "extra-files": [
         "bootstrap/cilium/VERSION"
       ]
@@ -14,7 +15,7 @@
     "bootstrap/argocd": {
       "component": "argocd",
       "include-component-in-tag": true,
-      "changelog-path": "bootstrap/argocd/CHANGELOG.md",
+      "changelog-path": "CHANGELOG.md",
       "extra-files": [
         "bootstrap/argocd/VERSION"
       ]
@@ -22,7 +23,7 @@
     "bootstrap/kro": {
       "component": "kro",
       "include-component-in-tag": true,
-      "changelog-path": "bootstrap/kro/CHANGELOG.md",
+      "changelog-path": "CHANGELOG.md",
       "extra-files": [
         "bootstrap/kro/VERSION"
       ]
