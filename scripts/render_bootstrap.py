@@ -33,6 +33,8 @@ class BootstrapError(RuntimeError):
 class RenderLane:
     name: str
     tracked: bool
+    include_hooks: bool
+    strip_hook_annotations: bool
     values: tuple[Path, ...]
     output: Path
 
@@ -136,9 +138,23 @@ def load_components() -> dict[str, Component]:
             if not isinstance(tracked, bool):
                 raise BootstrapError(f"{source_path}: render {render_name!r} must define tracked as true/false")
 
+            include_hooks = render_data.get("includeHooks", False)
+            if not isinstance(include_hooks, bool):
+                raise BootstrapError(
+                    f"{source_path}: render {render_name!r} must define includeHooks as true/false when set"
+                )
+
+            strip_hook_annotations = render_data.get("stripHookAnnotations", False)
+            if not isinstance(strip_hook_annotations, bool):
+                raise BootstrapError(
+                    f"{source_path}: render {render_name!r} must define stripHookAnnotations as true/false when set"
+                )
+
             renders[render_name] = RenderLane(
                 name=render_name,
                 tracked=tracked,
+                include_hooks=include_hooks,
+                strip_hook_annotations=strip_hook_annotations,
                 values=tuple(directory / item for item in values),
                 output=directory / output,
             )
@@ -280,9 +296,10 @@ def render_lane_text(component: Component, lane: RenderLane) -> str:
         component.chart_version,
         "--namespace",
         component.namespace,
-        "--no-hooks",
         "--skip-tests",
     ]
+    if not lane.include_hooks:
+        cmd.append("--no-hooks")
     if component.include_crds:
         cmd.append("--include-crds")
     for value_file in lane.values:
@@ -294,6 +311,9 @@ def render_lane_text(component: Component, lane: RenderLane) -> str:
         documents = [doc for doc in yaml.safe_load_all(rendered) if doc is not None]
     except yaml.YAMLError as exc:
         raise BootstrapError(f"failed to parse rendered YAML for {component.name}/{lane.name}: {exc}") from exc
+
+    if lane.strip_hook_annotations:
+        documents = [strip_helm_hook_annotations(doc) for doc in documents]
 
     if component.create_namespace and not has_namespace_document(documents, component.namespace):
         documents.insert(0, namespace_document(component.namespace))
@@ -334,6 +354,31 @@ def namespace_document(namespace: str) -> dict[str, Any]:
             "name": namespace,
         },
     }
+
+
+def strip_helm_hook_annotations(document: dict[str, Any]) -> dict[str, Any]:
+    if not isinstance(document, dict):
+        return document
+
+    metadata = document.get("metadata")
+    if not isinstance(metadata, dict):
+        return document
+
+    annotations = metadata.get("annotations")
+    if not isinstance(annotations, dict):
+        return document
+
+    cleaned = {
+        key: value
+        for key, value in annotations.items()
+        if key not in {"helm.sh/hook", "helm.sh/hook-delete-policy"}
+    }
+    if cleaned:
+        metadata["annotations"] = cleaned
+    else:
+        metadata.pop("annotations", None)
+
+    return document
 
 
 def secret_documents_with_material(documents: list[dict[str, Any]]) -> list[str]:
