@@ -11,6 +11,8 @@ includeCRDs: true
 renders:
   install:
     tracked: true
+    includeHooks: true
+    stripHookAnnotations: true
     values:
       - values/install.yaml
     output: render/install.yaml
