@@ -18,6 +18,8 @@ jobs:
       contents: write
       issues: write
       pull-requests: write
+    outputs:
+      prs_created: ${{ steps.release.outputs.prs_created }}
     steps:
       - name: Release Please
         uses: googleapis/release-please-action@16a9c90856f42705d54a6fda1823352bdc62cf38 # v4.4.0
@@ -26,3 +28,38 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
+
+  trigger-release-pr-ci:
+    needs: release-please
+    if: ${{ needs.release-please.result == 'success' }}
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      contents: read
+      pull-requests: read
+    steps:
+      - name: Trigger CI for open release PR branches
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+
+          mapfile -t branches < <(
+            gh pr list \
+              --repo "$GH_REPO" \
+              --state open \
+              --base master \
+              --json author,headRefName \
+              --jq '.[] | select(.author.login == "app/github-actions" and (.headRefName | startswith("release-please--"))) | .headRefName'
+          )
+
+          if [[ ${#branches[@]} -eq 0 ]]; then
+            echo "No open release-please PR branches to validate."
+            exit 0
+          fi
+
+          for branch in "${branches[@]}"; do
+            echo "Dispatching CI for ${branch}"
+            gh workflow run ci.yml --repo "$GH_REPO" --ref "$branch"
+          done
