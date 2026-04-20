@@ -67,6 +67,8 @@ docs/node_modules/
 docs/build/
 docs/.docusaurus/
 bootstrap/*/.state/
+bootstrap/*/charts/
+bootstrap/**/*.tgz
 
 # OS / editor
 .DS_Store

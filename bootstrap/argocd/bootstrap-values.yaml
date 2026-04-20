@@ -1,0 +1,6 @@
+argo-cd:
+  server:
+    service:
+      type: ClusterIP
+      loadBalancerClass: ""
+      externalTrafficPolicy: Cluster

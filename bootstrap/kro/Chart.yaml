@@ -1,0 +1,11 @@
+apiVersion: v2
+name: kro
+description: GilmanLab wrapper chart for steady-state kro installation.
+type: application
+version: 1.0.1
+appVersion: 0.9.1
+dependencies:
+  - name: kro
+    alias: kro
+    repository: oci://registry.k8s.io/kro/charts
+    version: 0.9.1

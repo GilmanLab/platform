@@ -1,0 +1,11 @@
+gilmanLab:
+  bgpLb:
+    enabled: false
+
+cilium:
+  hubble:
+    enabled: false
+    relay:
+      enabled: false
+    ui:
+      enabled: false

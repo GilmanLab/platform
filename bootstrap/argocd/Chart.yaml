@@ -1,0 +1,10 @@
+apiVersion: v2
+name: argocd
+description: GilmanLab wrapper chart for steady-state Argo CD installation.
+type: application
+version: 1.0.1
+appVersion: 9.5.2
+dependencies:
+  - name: argo-cd
+    repository: oci://ghcr.io/argoproj/argo-helm
+    version: 9.5.2
