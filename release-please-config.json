@@ -9,6 +9,13 @@
       "include-component-in-tag": true,
       "changelog-path": "CHANGELOG.md",
       "version-file": "VERSION",
+      "extra-files": [
+        {
+          "type": "yaml",
+          "path": "Chart.yaml",
+          "jsonpath": "$.version"
+        }
+      ],
       "exclude-paths": [
         "CHANGELOG.md",
         "VERSION"
@@ -19,6 +26,13 @@
       "include-component-in-tag": true,
       "changelog-path": "CHANGELOG.md",
       "version-file": "VERSION",
+      "extra-files": [
+        {
+          "type": "yaml",
+          "path": "Chart.yaml",
+          "jsonpath": "$.version"
+        }
+      ],
       "exclude-paths": [
         "CHANGELOG.md",
         "VERSION"
@@ -29,6 +43,13 @@
       "include-component-in-tag": true,
       "changelog-path": "CHANGELOG.md",
       "version-file": "VERSION",
+      "extra-files": [
+        {
+          "type": "yaml",
+          "path": "Chart.yaml",
+          "jsonpath": "$.version"
+        }
+      ],
       "exclude-paths": [
         "CHANGELOG.md",
         "VERSION"

@@ -1,6 +1,6 @@
 # Changelog
 
-## [1.0.1](https://github.com/GilmanLab/platform/compare/cilium-v1.0.0...cilium-v1.0.1) (2026-04-19)
+## [1.1.0](https://github.com/GilmanLab/platform/compare/cilium-v1.0.0...cilium-v1.1.0) (2026-04-19)
 
 
 ### Bug Fixes

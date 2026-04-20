@@ -1,0 +1,6 @@
+argo-cd:
+  server:
+    service:
+      type: LoadBalancer
+      loadBalancerClass: io.cilium/bgp-control-plane
+      externalTrafficPolicy: Local

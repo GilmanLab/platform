@@ -40,12 +40,21 @@ class RenderLane:
 
 
 @dataclass(frozen=True)
+class Dependency:
+    name: str
+    alias: str
+    repository: str
+    version: str
+
+
+@dataclass(frozen=True)
 class Component:
     name: str
     directory: Path
-    chart_ref: str
-    chart_version: str
-    chart_digest: str
+    chart_path: Path
+    wrapper_version: str
+    app_version: str
+    dependency: Dependency
     release_name: str
     namespace: str
     create_namespace: bool
@@ -55,9 +64,6 @@ class Component:
 
 COMPONENT_METADATA: dict[str, dict[str, Any]] = {
     "argocd": {
-        "chart_ref": "oci://ghcr.io/argoproj/argo-helm/argo-cd",
-        "chart_version": "9.5.2",
-        "chart_digest": "sha256:91688034f0b2b52f022fb15c0e3ee4207244275039597debbbebc3c921f3e9aa",
         "release_name": "argocd",
         "namespace": "argocd",
         "create_namespace": True,
@@ -67,22 +73,19 @@ COMPONENT_METADATA: dict[str, dict[str, Any]] = {
                 "tracked": True,
                 "include_hooks": True,
                 "strip_hook_annotations": True,
-                "values": ("values/base.yaml", "values/bootstrap-overrides.yaml"),
+                "values": ("bootstrap-values.yaml",),
                 "output": "render/bootstrap.yaml",
             },
             "full": {
                 "tracked": True,
                 "include_hooks": True,
                 "strip_hook_annotations": True,
-                "values": ("values/base.yaml", "values/full-overrides.yaml"),
+                "values": (),
                 "output": "render/full.yaml",
             },
         },
     },
     "cilium": {
-        "chart_ref": "oci://quay.io/cilium/charts/cilium",
-        "chart_version": "1.19.3",
-        "chart_digest": "sha256:0683e1fc672e0c6587a8d8d43f6845430aaaed47e36dacbe77e3e621ea7a4c69",
         "release_name": "cilium",
         "namespace": "kube-system",
         "create_namespace": False,
@@ -92,22 +95,19 @@ COMPONENT_METADATA: dict[str, dict[str, Any]] = {
                 "tracked": True,
                 "include_hooks": False,
                 "strip_hook_annotations": False,
-                "values": ("values/base.yaml", "values/bootstrap-overrides.yaml"),
+                "values": ("bootstrap-values.yaml",),
                 "output": "render/bootstrap.yaml",
             },
             "full": {
                 "tracked": False,
                 "include_hooks": False,
                 "strip_hook_annotations": False,
-                "values": ("values/base.yaml", "values/full-overrides.yaml"),
+                "values": (),
                 "output": ".state/render/full.yaml",
             },
         },
     },
     "kro": {
-        "chart_ref": "oci://registry.k8s.io/kro/charts/kro",
-        "chart_version": "0.9.1",
-        "chart_digest": "sha256:37b00031550322ede84caa305024ada4dcc30cfe9fa3375822be2e212fa9411f",
         "release_name": "kro",
         "namespace": "kro-system",
         "create_namespace": True,
@@ -117,7 +117,7 @@ COMPONENT_METADATA: dict[str, dict[str, Any]] = {
                 "tracked": True,
                 "include_hooks": False,
                 "strip_hook_annotations": False,
-                "values": ("values/base.yaml", "values/full-overrides.yaml"),
+                "values": (),
                 "output": "render/full.yaml",
             },
         },
@@ -141,7 +141,7 @@ def main() -> int:
     )
 
     validate_parser = subparsers.add_parser(
-        "validate", help="Verify tracked bootstrap manifests are current and safe to publish"
+        "validate", help="Verify bootstrap charts lint clean and tracked renders are current"
     )
     validate_parser.add_argument("--component", help="Restrict validation to one component")
 
@@ -190,6 +190,28 @@ def load_components() -> dict[str, Component]:
         if not directory.is_dir():
             raise BootstrapError(f"bootstrap component directory does not exist: {directory}")
 
+        chart_path = directory / "Chart.yaml"
+        version_path = directory / "VERSION"
+        values_path = directory / "values.yaml"
+        if not chart_path.is_file():
+            raise BootstrapError(f"missing Chart.yaml: {chart_path}")
+        if not version_path.is_file():
+            raise BootstrapError(f"missing VERSION file: {version_path}")
+        if not values_path.is_file():
+            raise BootstrapError(f"missing values.yaml: {values_path}")
+
+        chart = load_yaml(chart_path)
+        wrapper_version = version_path.read_text(encoding="utf-8").strip()
+        dependency = load_dependency(name, chart, chart_path)
+        app_version = str(chart.get("appVersion", ""))
+
+        if chart.get("name") != name:
+            raise BootstrapError(f"{chart_path} must declare name: {name}")
+        if str(chart.get("version", "")) != wrapper_version:
+            raise BootstrapError(f"{chart_path} version must match {version_path}")
+        if app_version != dependency.version:
+            raise BootstrapError(f"{chart_path} appVersion must match dependency version")
+
         renders: dict[str, RenderLane] = {}
         for render_name, render_data in metadata["renders"].items():
             renders[render_name] = RenderLane(
@@ -204,9 +226,10 @@ def load_components() -> dict[str, Component]:
         components[name] = Component(
             name=name,
             directory=directory,
-            chart_ref=metadata["chart_ref"],
-            chart_version=metadata["chart_version"],
-            chart_digest=metadata["chart_digest"],
+            chart_path=chart_path,
+            wrapper_version=wrapper_version,
+            app_version=app_version,
+            dependency=dependency,
             release_name=metadata["release_name"],
             namespace=metadata["namespace"],
             create_namespace=metadata["create_namespace"],
@@ -215,6 +238,36 @@ def load_components() -> dict[str, Component]:
         )
 
     return components
+
+
+def load_yaml(path: Path) -> dict[str, Any]:
+    try:
+        document = yaml.safe_load(path.read_text(encoding="utf-8"))
+    except yaml.YAMLError as exc:
+        raise BootstrapError(f"failed to parse YAML: {path}: {exc}") from exc
+    if not isinstance(document, dict):
+        raise BootstrapError(f"expected a YAML mapping in {path}")
+    return document
+
+
+def load_dependency(component: str, chart: dict[str, Any], chart_path: Path) -> Dependency:
+    dependencies = chart.get("dependencies")
+    if not isinstance(dependencies, list) or len(dependencies) != 1:
+        raise BootstrapError(f"{chart_path} must declare exactly one dependency")
+
+    raw_dependency = dependencies[0]
+    if not isinstance(raw_dependency, dict):
+        raise BootstrapError(f"{chart_path} dependency must be a YAML mapping")
+
+    name = str(raw_dependency.get("name", ""))
+    alias = str(raw_dependency.get("alias", name))
+    repository = str(raw_dependency.get("repository", ""))
+    version = str(raw_dependency.get("version", ""))
+
+    if not name or not repository or not version:
+        raise BootstrapError(f"{chart_path} dependency must define name, repository, and version")
+
+    return Dependency(name=name, alias=alias, repository=repository, version=version)
 
 
 def select_components(components: dict[str, Component], name: str | None) -> list[Component]:
@@ -228,8 +281,9 @@ def select_components(components: dict[str, Component], name: str | None) -> lis
 def list_components(components: list[Component]) -> None:
     for component in components:
         print(
-            f"{component.name}\t{component.chart_ref}@{component.chart_version}\t"
-            f"{component.namespace}\t{component.chart_digest}"
+            f"{component.name}\tbootstrap/{component.name}@{component.wrapper_version}\t"
+            f"{component.namespace}\t"
+            f"{component.dependency.repository}/{component.dependency.name}@{component.dependency.version}"
         )
         for lane in component.renders.values():
             tracked = "tracked" if lane.tracked else "local"
@@ -238,6 +292,7 @@ def list_components(components: list[Component]) -> None:
 
 def render_components(components: list[Component], *, tracked_only: bool) -> None:
     for component in components:
+        ensure_chart_dependencies(component)
         for lane in component.renders.values():
             if tracked_only and not lane.tracked:
                 continue
@@ -249,7 +304,10 @@ def render_components(components: list[Component], *, tracked_only: bool) -> Non
 
 def validate_components(components: list[Component]) -> None:
     for component in components:
+        ensure_chart_dependencies(component)
+        lint_component(component)
         for lane in component.renders.values():
+            lint_component(component, lane)
             if not lane.tracked:
                 continue
 
@@ -282,18 +340,25 @@ def validate_components(components: list[Component]) -> None:
             print(f"validated {component.name}/{lane.name}: {lane.output.relative_to(ROOT)}")
 
 
-def render_lane_text(component: Component, lane: RenderLane) -> str:
-    for value_file in lane.values:
+def ensure_chart_dependencies(component: Component) -> None:
+    run(["helm", "dependency", "build", str(component.directory)])
+
+
+def lint_component(component: Component, lane: RenderLane | None = None) -> None:
+    cmd = ["helm", "lint", str(component.directory)]
+    for value_file in lane.values if lane else ():
         if not value_file.is_file():
             raise BootstrapError(f"missing values file: {value_file}")
+        cmd.extend(["--values", str(value_file)])
+    run(cmd)
 
+
+def render_lane_text(component: Component, lane: RenderLane) -> str:
     cmd = [
         "helm",
         "template",
         component.release_name,
-        component.chart_ref,
-        "--version",
-        component.chart_version,
+        str(component.directory),
         "--namespace",
         component.namespace,
         "--skip-tests",
@@ -303,6 +368,8 @@ def render_lane_text(component: Component, lane: RenderLane) -> str:
     if component.include_crds:
         cmd.append("--include-crds")
     for value_file in lane.values:
+        if not value_file.is_file():
+            raise BootstrapError(f"missing values file: {value_file}")
         cmd.extend(["--values", str(value_file)])
 
     rendered = run(cmd)
@@ -322,7 +389,11 @@ def render_lane_text(component: Component, lane: RenderLane) -> str:
         "# Generated by scripts/render_bootstrap.py; do not edit by hand.",
         f"# Component: {component.name}",
         f"# Render lane: {lane.name}",
-        f"# Source: {component.chart_ref}@{component.chart_version}",
+        f"# Wrapper chart: bootstrap/{component.name}@{component.wrapper_version}",
+        (
+            f"# Upstream chart: {component.dependency.repository}/"
+            f"{component.dependency.name}@{component.dependency.version}"
+        ),
         "",
     ]
     body = yaml.safe_dump_all(

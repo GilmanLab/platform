@@ -10,7 +10,7 @@ render:
 render-all:
     uv run scripts/render_bootstrap.py render
 
-# Verify tracked bootstrap artifacts are in sync and free of embedded secret material.
+# Lint bootstrap charts and verify tracked bootstrap artifacts are in sync and free of embedded secret material.
 validate:
     uv run scripts/render_bootstrap.py validate
 

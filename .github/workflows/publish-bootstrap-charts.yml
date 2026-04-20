@@ -1,0 +1,105 @@
+name: Publish Bootstrap Charts
+
+on:
+  push:
+    tags:
+      - 'cilium-v*'
+      - 'argocd-v*'
+      - 'kro-v*'
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Setup Helm
+        uses: azure/setup-helm@dda3372f752e03dde6b3237bc9431cdc2f7a02a2 # v5.0.0
+        with:
+          version: v4.0.4
+
+      - name: Resolve Release Target
+        id: target
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          tag="${GITHUB_REF_NAME}"
+          case "${tag}" in
+            cilium-v*) component="cilium" ;;
+            argocd-v*) component="argocd" ;;
+            kro-v*) component="kro" ;;
+            *)
+              echo "unsupported tag: ${tag}" >&2
+              exit 1
+              ;;
+          esac
+
+          version="${tag#${component}-v}"
+          chart_dir="bootstrap/${component}"
+          chart_name="$(awk '/^name:/ { print $2; exit }' "${chart_dir}/Chart.yaml")"
+          chart_version="$(awk '/^version:/ { print $2; exit }' "${chart_dir}/Chart.yaml")"
+          file_version="$(tr -d '\n' < "${chart_dir}/VERSION")"
+
+          if [ "${chart_name}" != "${component}" ]; then
+            echo "Chart name mismatch: expected ${component}, got ${chart_name}" >&2
+            exit 1
+          fi
+
+          if [ "${version}" != "${chart_version}" ]; then
+            echo "Tag version ${version} does not match Chart.yaml version ${chart_version}" >&2
+            exit 1
+          fi
+
+          if [ "${version}" != "${file_version}" ]; then
+            echo "Tag version ${version} does not match VERSION ${file_version}" >&2
+            exit 1
+          fi
+
+          {
+            echo "component=${component}"
+            echo "version=${version}"
+            echo "chart_dir=${chart_dir}"
+          } >> "${GITHUB_OUTPUT}"
+
+      - name: Login to GHCR
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "${{ secrets.GITHUB_TOKEN }}" | \
+            helm registry login ghcr.io \
+              --username "${{ github.actor }}" \
+              --password-stdin
+
+      - name: Build Chart Dependencies
+        run: helm dependency build "${{ steps.target.outputs.chart_dir }}"
+
+      - name: Lint Chart
+        run: helm lint "${{ steps.target.outputs.chart_dir }}"
+
+      - name: Package Chart
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          helm package "${{ steps.target.outputs.chart_dir }}" --destination dist
+          test -f "dist/${{ steps.target.outputs.component }}-${{ steps.target.outputs.version }}.tgz"
+
+      - name: Push Chart
+        run: |
+          helm push \
+            "dist/${{ steps.target.outputs.component }}-${{ steps.target.outputs.version }}.tgz" \
+            oci://ghcr.io/gilmanlab/platform/bootstrap
