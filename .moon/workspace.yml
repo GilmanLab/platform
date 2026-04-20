@@ -1,5 +1,6 @@
 projects:
   sources:
+    dns-mirror: 'services/dns-mirror'
     root: '.'
 
 defaultProject: 'root'

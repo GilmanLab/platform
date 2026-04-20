@@ -1,0 +1,15 @@
+default:
+    @just --list
+
+fmt:
+    gofmt -w ./cmd ./internal
+
+test:
+    go test ./...
+
+image:
+    DOCKER_BUILDKIT=1 docker build -t dns-mirror:test .
+
+check:
+    go test ./...
+    DOCKER_BUILDKIT=1 docker build -t dns-mirror:test .
