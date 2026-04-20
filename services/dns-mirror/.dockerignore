@@ -1,0 +1,10 @@
+.git
+.moon
+bin
+coverage.out
+dist
+Dockerfile
+CHANGELOG.md
+README.md
+moon.yml
+Justfile

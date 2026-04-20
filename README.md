@@ -7,6 +7,11 @@ The current baseline focuses on repo scaffolding, Moon-based CI, and GitHub
 automation so platform projects can be added incrementally without replacing
 the repository foundation each time.
 
+## Current Projects
+
+- `bootstrap/*`: reusable bootstrap chart wrappers published to GHCR
+- `services/dns-mirror`: Route 53 private-zone mirror daemon for the AWS subnet router
+
 ## Quick Start
 
 Prerequisites:

@@ -1,0 +1,28 @@
+layer: 'application'
+tags:
+  - 'go'
+  - 'service'
+  - 'dns'
+
+project:
+  title: 'dns-mirror'
+  description: 'Route 53 hosted-zone mirror service for the AWS subnet router.'
+  owner: 'GilmanLab'
+  maintainers:
+    - 'josh'
+
+tasks:
+  check:
+    command: 'bash -lc "go test ./... && DOCKER_BUILDKIT=1 docker build -t dns-mirror:test ."'
+    toolchains: 'system'
+    inputs:
+      - '**/*.go'
+      - '.dockerignore'
+      - 'Dockerfile'
+      - 'go.mod'
+      - 'go.sum'
+      - 'Justfile'
+      - 'VERSION'
+    options:
+      cache: false
+      runInCI: true
