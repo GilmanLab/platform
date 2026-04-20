@@ -13,11 +13,16 @@ workspace:
 
 tasks:
   check:
-    command: 'uv run scripts/render_bootstrap.py validate'
+    script: |
+      uv run scripts/render_bootstrap.py validate
+      uv run scripts/render_rgds.py validate
     toolchains: 'system'
     inputs:
       - 'bootstrap/**/*'
+      - 'cue.mod/**/*'
+      - 'rgds/**/*'
       - 'scripts/render_bootstrap.py'
+      - 'scripts/render_rgds.py'
     options:
       cache: false
       runInCI: true

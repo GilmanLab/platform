@@ -54,6 +54,16 @@
         "CHANGELOG.md",
         "VERSION"
       ]
+    },
+    "rgds/platform": {
+      "component": "platform-rgds",
+      "include-component-in-tag": true,
+      "changelog-path": "CHANGELOG.md",
+      "version-file": "VERSION",
+      "exclude-paths": [
+        "CHANGELOG.md",
+        "VERSION"
+      ]
     }
   },
   "changelog-sections": [
