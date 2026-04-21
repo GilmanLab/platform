@@ -64,6 +64,16 @@
         "CHANGELOG.md",
         "VERSION"
       ]
+    },
+    "services/github-token-broker": {
+      "component": "github-token-broker",
+      "include-component-in-tag": true,
+      "changelog-path": "CHANGELOG.md",
+      "version-file": "VERSION",
+      "exclude-paths": [
+        "CHANGELOG.md",
+        "VERSION"
+      ]
     }
   },
   "changelog-sections": [
