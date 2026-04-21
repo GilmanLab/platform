@@ -60,3 +60,24 @@ func TestLoadRejectsInvalidInterval(t *testing.T) {
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "DNS_MIRROR_SYNC_INTERVAL")
 }
+
+func TestLoadFetch(t *testing.T) {
+	cfg, err := config.LoadFetch([]string{
+		"--source-url", "http://example.test/zonefile",
+		"--output-path", "/tmp/glab.zone",
+		"--timeout", "5s",
+		"--log-level", "debug",
+	})
+	require.NoError(t, err)
+
+	assert.Equal(t, "http://example.test/zonefile", cfg.SourceURL)
+	assert.Equal(t, "/tmp/glab.zone", cfg.OutputPath)
+	assert.Equal(t, 5*time.Second, cfg.Timeout)
+	assert.Equal(t, "debug", cfg.LogLevel)
+}
+
+func TestLoadFetchRejectsMissingValues(t *testing.T) {
+	_, err := config.LoadFetch(nil)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "--source-url")
+}

@@ -1,7 +1,8 @@
 # dns-mirror
 
 `dns-mirror` mirrors a single Route 53 hosted zone to a deterministic zonefile
-on disk and serves the latest rendered snapshot over HTTP.
+on disk, serves the latest rendered snapshot over HTTP, and can fetch that
+snapshot to another host.
 
 It is designed for the AWS subnet router in the `glab` lab account:
 
@@ -34,4 +35,5 @@ Optional environment variables:
 ```sh
 just check
 go run ./cmd/dns-mirror --once
+go run ./cmd/dns-mirror fetch --source-url http://100.80.89.100:8080/zonefile --output-path /tmp/glab.lol.zone
 ```
