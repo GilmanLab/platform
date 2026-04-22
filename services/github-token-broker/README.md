@@ -28,6 +28,11 @@ Optional environment variables:
 just check
 ```
 
+## Invocation Contract
+
+Invoke the Lambda with an empty or `null` payload. The broker does not accept
+caller-selected repositories, permissions, paths, or refs.
+
 ## No-Git Bootstrap Fetch
 
 After invoking the Lambda, a bootstrap caller can use the returned token with
