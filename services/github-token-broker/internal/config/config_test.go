@@ -23,6 +23,8 @@ func TestLoadDefaults(t *testing.T) {
 }
 
 func TestLoadRejectsMissingRegion(t *testing.T) {
+	t.Setenv("AWS_REGION", "")
+
 	_, err := Load()
 
 	require.Error(t, err)
