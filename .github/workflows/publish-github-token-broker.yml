@@ -1,0 +1,110 @@
+name: Publish GitHub Token Broker
+
+on:
+  push:
+    tags:
+      - 'github-token-broker-v*'
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  AWS_REGION: us-west-2
+  FUNCTION_NAME: glab-github-token-broker
+  PUBLISHER_ROLE_ARN: arn:aws:iam::186067932323:role/glab-github-token-broker-publisher
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      attestations: write
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Resolve Release Target
+        id: target
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          tag="${GITHUB_REF_NAME}"
+          case "${tag}" in
+            github-token-broker-v*) component="github-token-broker" ;;
+            *)
+              echo "unsupported tag: ${tag}" >&2
+              exit 1
+              ;;
+          esac
+
+          version="${tag#${component}-v}"
+          service_dir="services/${component}"
+          file_version="$(tr -d '\n' < "${service_dir}/VERSION")"
+
+          if [ "${version}" != "${file_version}" ]; then
+            echo "Tag version ${version} does not match VERSION ${file_version}" >&2
+            exit 1
+          fi
+
+          {
+            echo "component=${component}"
+            echo "version=${version}"
+            echo "service_dir=${service_dir}"
+            echo "zip_path=${service_dir}/dist/${component}.zip"
+          } >> "${GITHUB_OUTPUT}"
+
+      - name: Setup Go
+        uses: actions/setup-go@44694675825211faa026b3c33043df3e48a5fa00 # v6.0.0
+        with:
+          go-version-file: ${{ steps.target.outputs.service_dir }}/go.mod
+          cache-dependency-path: ${{ steps.target.outputs.service_dir }}/go.sum
+
+      - name: Test
+        working-directory: ${{ steps.target.outputs.service_dir }}
+        run: go test ./...
+
+      - name: Build Lambda Zip
+        working-directory: ${{ steps.target.outputs.service_dir }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf build dist
+          mkdir -p build dist
+          GOOS=linux GOARCH=arm64 CGO_ENABLED=0 \
+            go build -buildvcs=false -tags lambda.norpc -trimpath -ldflags="-s -w" \
+            -o build/bootstrap ./cmd/github-token-broker
+          (cd build && zip -X "../dist/${{ steps.target.outputs.component }}.zip" bootstrap)
+
+      - name: Attest Lambda Zip
+        uses: actions/attest-build-provenance@96278af6caaf10aea03fd8d33a09a777ca52d62f # v3.2.0
+        with:
+          subject-path: ${{ steps.target.outputs.zip_path }}
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@ec61189d14ec14c8efccab744f656cffd0e33f37 # v6.1.0
+        with:
+          aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: ${{ env.PUBLISHER_ROLE_ARN }}
+
+      - name: Publish Function Code
+        shell: bash
+        run: |
+          set -euo pipefail
+          aws lambda update-function-code \
+            --function-name "${FUNCTION_NAME}" \
+            --zip-file "fileb://${{ steps.target.outputs.zip_path }}" \
+            --publish
+          aws lambda wait function-updated-v2 \
+            --function-name "${FUNCTION_NAME}"
+          aws lambda get-function \
+            --function-name "${FUNCTION_NAME}" \
+            --query 'Configuration.[FunctionName,Version,LastUpdateStatus]' \
+            --output text

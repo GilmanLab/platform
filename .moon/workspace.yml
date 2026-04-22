@@ -1,6 +1,7 @@
 projects:
   sources:
     dns-mirror: 'services/dns-mirror'
+    github-token-broker: 'services/github-token-broker'
     root: '.'
 
 defaultProject: 'root'
