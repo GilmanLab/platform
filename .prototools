@@ -1,0 +1,4 @@
+hadolint = "=2.14.0"
+
+[plugins.tools]
+hadolint = "file://.moon/proto/hadolint.toml"

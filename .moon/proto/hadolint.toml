@@ -1,0 +1,29 @@
+name = "Hadolint"
+type = "cli"
+
+[platform.linux]
+checksum-file = "hadolint-linux-{arch}.sha256"
+download-file = "hadolint-linux-{arch}"
+
+[platform.macos]
+checksum-file = "hadolint-macos-{arch}.sha256"
+download-file = "hadolint-macos-{arch}"
+
+[platform.windows]
+checksum-file = "hadolint-windows-{arch}.exe.sha256"
+download-file = "hadolint-windows-{arch}.exe"
+
+[install]
+checksum-url = "https://github.com/hadolint/hadolint/releases/download/v{version}/{checksum_file}"
+download-url = "https://github.com/hadolint/hadolint/releases/download/v{version}/{download_file}"
+
+[install.arch]
+aarch64 = "arm64"
+
+[install.exes.hadolint]
+exe-path = "hadolint"
+primary = true
+
+[resolve]
+git-url = "https://github.com/hadolint/hadolint"
+version-pattern = "^v((?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+))$"
