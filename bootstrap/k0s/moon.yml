@@ -1,0 +1,22 @@
+layer: 'scaffolding'
+tags:
+  - 'bootstrap'
+  - 'docker'
+  - 'k0s'
+
+project:
+  title: 'bootstrap-k0s'
+  description: 'Temporary VyOS-hosted k0s bootstrap image.'
+  owner: 'GilmanLab'
+  maintainers:
+    - 'josh'
+
+tasks:
+  lint:
+    command: 'bash -lc "proto install hadolint --quiet && proto run hadolint -- Dockerfile"'
+    toolchains: 'system'
+    inputs:
+      - 'Dockerfile'
+    options:
+      cache: false
+      runInCI: true

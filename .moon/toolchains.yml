@@ -1,2 +1,2 @@
-# No managed toolchains are required for this repository yet.
-{}
+proto:
+  version: '0.56.4'

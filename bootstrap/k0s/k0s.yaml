@@ -1,0 +1,42 @@
+apiVersion: k0s.k0sproject.io/v1beta1
+kind: ClusterConfig
+metadata:
+  name: bootstrap-k0s
+  namespace: kube-system
+spec:
+  extensions:
+    helm:
+      concurrencyLevel: 1
+      charts:
+        - name: cert-manager
+          chartname: /opt/bootstrap/charts/cert-manager.tgz
+          namespace: cert-manager
+          order: 0
+          values: |
+            crds:
+              enabled: true
+        - name: cluster-api-operator
+          chartname: /opt/bootstrap/charts/cluster-api-operator.tgz
+          namespace: capi-operator-system
+          order: 10
+        - name: tinkerbell
+          chartname: /opt/bootstrap/charts/tinkerbell.tgz
+          namespace: tinkerbell
+          order: 20
+          values: |
+            service:
+              type: ClusterIP
+            deployment:
+              init:
+                enabled: false
+              envs:
+                smee:
+                  dhcpEnabled: false
+            optional:
+              osie:
+                service:
+                  type: ClusterIP
+              hookos:
+                enabled: false
+              kubevip:
+                enabled: false
