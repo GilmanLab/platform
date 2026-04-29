@@ -13,7 +13,7 @@ project:
 
 tasks:
   lint:
-    command: 'proto exec hadolint -- hadolint Dockerfile'
+    command: 'hadolint Dockerfile'
     toolchains: 'system'
     inputs:
       - '/.prototools'
@@ -25,7 +25,7 @@ tasks:
       runInCI: true
   vet:
     command: >-
-      bash -lc "proto exec cue -- cue vet -c k0s.cue
+      bash -lc "cue vet -c k0s.cue
       -t pod_cidr=10.244.0.0/16
       -t service_cidr=10.96.0.0/12
       -t public_ip=10.10.20.1
@@ -48,8 +48,8 @@ tasks:
       runInCI: true
   check:
     command: >-
-      bash -lc "proto exec hadolint -- hadolint Dockerfile &&
-      proto exec cue -- cue vet -c k0s.cue
+      bash -lc "hadolint Dockerfile &&
+      cue vet -c k0s.cue
       -t pod_cidr=10.244.0.0/16
       -t service_cidr=10.96.0.0/12
       -t public_ip=10.10.20.1
