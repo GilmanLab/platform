@@ -55,6 +55,16 @@
         "VERSION"
       ]
     },
+    "bootstrap/k0s": {
+      "component": "bootstrap-k0s",
+      "include-component-in-tag": true,
+      "changelog-path": "CHANGELOG.md",
+      "version-file": "VERSION",
+      "exclude-paths": [
+        "CHANGELOG.md",
+        "VERSION"
+      ]
+    },
     "services/dns-mirror": {
       "component": "dns-mirror",
       "include-component-in-tag": true,

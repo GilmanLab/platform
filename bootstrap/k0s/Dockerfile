@@ -77,13 +77,14 @@ RUN cue export /tmp/providers.cue \
         -t talos_control_plane_provider_version="${TALOS_CONTROL_PLANE_PROVIDER_VERSION}" \
         >/out/providers.yaml
 
-# The runtime image only needs static config, pre-fetched charts, and the
-# delayed provider-manifest handoff helper.
+# The runtime image only needs the CUE sources, the CUE CLI, pre-fetched
+# charts, and the delayed provider-manifest handoff helper.
 FROM ${K0S_IMAGE}
 
-COPY bootstrap/k0s/k0s.yaml /etc/k0s/k0s.yaml
+COPY bootstrap/k0s/k0s.cue /opt/bootstrap/k0s.cue
 COPY bootstrap/k0s/manifests/providers/namespaces.yaml /var/lib/k0s/manifests/providers/00-namespaces.yaml
 COPY bootstrap/k0s/bootstrap-k0s.sh /usr/local/bin/bootstrap-k0s.sh
+COPY --from=chart-builder /usr/local/bin/cue /usr/local/bin/cue
 COPY --from=chart-builder /out/cert-manager.tgz /opt/bootstrap/charts/cert-manager.tgz
 COPY --from=chart-builder /out/cluster-api-operator.tgz /opt/bootstrap/charts/cluster-api-operator.tgz
 COPY --from=chart-builder /out/tinkerbell.tgz /opt/bootstrap/charts/tinkerbell.tgz
@@ -93,7 +94,7 @@ ENV K0S_ENTRYPOINT_ROLE=controller+worker
 
 # Namespace manifests are always present; provider CRs are staged later by the
 # helper once the operator CRDs and webhook are available.
-RUN mkdir -p /opt/bootstrap/charts \
+RUN mkdir -p /etc/k0s /opt/bootstrap/charts \
     && chmod 0755 /usr/local/bin/bootstrap-k0s.sh
 
 CMD ["/usr/local/bin/bootstrap-k0s.sh"]
