@@ -1,9 +1,9 @@
-name: Publish Schemas
+name: Publish Lab Schemas
 
 on:
   push:
     tags:
-      - 'schemas/v*'
+      - 'schemas/lab/v*'
 
 permissions: {}
 
@@ -31,8 +31,8 @@ jobs:
           set -euo pipefail
 
           tag="${GITHUB_REF_NAME}"
-          component="schemas"
-          schemas_dir="schemas"
+          component="schemas/lab"
+          schemas_dir="schemas/lab"
 
           case "${tag}" in
             ${component}/v0.*) ;;

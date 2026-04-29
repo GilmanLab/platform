@@ -6,7 +6,7 @@ tags:
 
 project:
   title: 'schemas'
-  description: 'Shared CUE schemas and generated Go types for GilmanLab platform tooling.'
+  description: 'Shared lab CUE schemas and generated Go types for GilmanLab platform tooling.'
   owner: 'GilmanLab'
   maintainers:
     - 'josh'

@@ -11,7 +11,7 @@ The CUE schema is the source of truth; Go types are generated from `schema.cue`.
 ```cue
 package images
 
-import incusos "github.com/gilmanlab/platform/schemas/incusos"
+import incusos "github.com/gilmanlab/platform/schemas/lab/incusos"
 
 build: incusos.#ImageBuild & {
 	name: "incusos-operation-first-node"

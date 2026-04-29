@@ -85,8 +85,8 @@
         "VERSION"
       ]
     },
-    "schemas": {
-      "component": "schemas",
+    "schemas/lab": {
+      "component": "schemas/lab",
       "include-component-in-tag": true,
       "tag-separator": "/",
       "changelog-path": "CHANGELOG.md",

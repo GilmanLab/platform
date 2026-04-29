@@ -1,6 +1,6 @@
-# GilmanLab Schemas
+# GilmanLab Lab Schemas
 
-This module contains shared CUE schemas for GilmanLab platform tooling.
+This module contains shared CUE schemas for GilmanLab lab tooling.
 
 The CUE definitions are the source of truth. Generated Go types are committed
 for Go consumers that need typed access to the same contracts.
