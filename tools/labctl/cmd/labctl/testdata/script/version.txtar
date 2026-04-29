@@ -1,0 +1,15 @@
+exec labctl version
+stdout '^labctl dev\n$'
+! stderr .
+
+exec labctl version --json
+stdout '"version":"dev"'
+! stderr .
+
+exec labctl -q version
+! stdout .
+! stderr .
+
+exec labctl -q version --json
+stdout '"version":"dev"'
+! stderr .

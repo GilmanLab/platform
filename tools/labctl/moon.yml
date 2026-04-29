@@ -1,0 +1,54 @@
+layer: 'application'
+tags:
+  - 'go'
+  - 'cli'
+
+project:
+  title: 'labctl'
+  description: 'Homelab day-to-day and bootstrap operations CLI.'
+  owner: 'GilmanLab'
+  maintainers:
+    - 'josh'
+
+tasks:
+  lint:
+    command: 'bash -lc "if find . -name ''*.go'' -not -path ''./vendor/*'' -print -quit | grep -q .; then go tool golangci-lint run --config .golangci.yml ./...; else echo ''no Go files to lint''; fi"'
+    toolchains: 'system'
+    inputs:
+      - '**/*.go'
+      - '.golangci.yml'
+      - 'go.mod'
+      - 'go.sum'
+    options:
+      cache: false
+
+  format:
+    command: 'bash -lc "if find . -name ''*.go'' -not -path ''./vendor/*'' -print -quit | grep -q .; then go tool golangci-lint fmt --config .golangci.yml --diff; else echo ''no Go files to format''; fi"'
+    toolchains: 'system'
+    inputs:
+      - '**/*.go'
+      - '.golangci.yml'
+      - 'go.mod'
+      - 'go.sum'
+    options:
+      cache: false
+
+  test:
+    command: 'bash -lc "if find . -name ''*.go'' -not -path ''./vendor/*'' -print -quit | grep -q .; then go test ./...; else echo ''no Go packages to test''; fi"'
+    toolchains: 'system'
+    inputs:
+      - '**/*.go'
+      - 'cmd/labctl/testdata/**/*'
+      - 'go.mod'
+      - 'go.sum'
+    options:
+      cache: false
+
+  check:
+    deps:
+      - 'labctl:format'
+      - 'labctl:lint'
+      - 'labctl:test'
+    options:
+      cache: false
+      runInCI: true

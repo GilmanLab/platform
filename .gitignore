@@ -2,6 +2,9 @@
 .moon/cache/
 .moon/docker/
 
+# Worktrunk
+.wt/
+
 # Environment
 .env
 .env.*
