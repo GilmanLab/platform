@@ -1,17 +1,10 @@
 # IncusOS Schema
 
-This package defines the CUE contract for building a seeded IncusOS image for
-lab bootstrap use. It covers the first `labctl` image-build slice: download the
-upstream image, verify it from upstream metadata, write the seed payload, and
-produce a `.img.gz` artifact.
+This package defines the CUE schema for IncusOS image build configuration. It is
+used by platform tooling, including `labctl`, to validate and consume the image
+source, output artifact, and seed payload contract.
 
-The package intentionally does not model VyOS staging, image hosting, OCI
-publication, or long-term Incus CA trust. Seeded trust starts with exact trusted
-client certificate entries whose certificate material is resolved from external
-SOPS-managed secrets.
-
-The CUE schema is the source of truth. The Go types in this package are
-generated from `schema.cue`.
+The CUE schema is the source of truth; Go types are generated from `schema.cue`.
 
 ## Example
 
