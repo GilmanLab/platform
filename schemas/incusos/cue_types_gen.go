@@ -2,96 +2,143 @@
 
 package incusos
 
+// NonEmptyString is a required string value that must not be empty.
 type NonEmptyString string
 
+// HTTPURL is an HTTP or HTTPS URL.
 type HTTPURL string
 
+// ImageFormat is the compressed image artifact format produced by the build.
 type ImageFormat string
 
+// ImageVersion selects the upstream IncusOS image version.
 type ImageVersion string
 
+// ImageSize is the expected image size written into the IncusOS seed metadata.
 type ImageSize string
 
+// SeedOffset is the byte offset where seed data is written in the image.
 type SeedOffset int64
 
+// SecretRef points at a field in a SOPS-managed secret document.
 type SecretRef struct {
+	// Path is the repo-relative path to the SOPS-managed secret document.
 	Path NonEmptyString `json:"path"`
 
+	// Field is the field name inside the secret document.
 	Field NonEmptyString `json:"field"`
 }
 
+// SecretString models a string value sourced from an external secret.
 type SecretString struct {
+	// SecretRef identifies the secret field that supplies the value.
 	SecretRef SecretRef `json:"secretRef"`
 }
 
+// ImageSource describes where to download the upstream IncusOS image from.
 type ImageSource struct {
+	// IndexURL is the upstream stream index URL used to discover image metadata.
 	IndexURL HTTPURL `json:"indexURL"`
 
+	// BaseURL is the upstream base URL used to download image artifacts.
 	BaseURL HTTPURL `json:"baseURL"`
 
+	// Channel selects the upstream IncusOS release stream.
 	Channel string `json:"channel"`
 
+	// Arch selects the upstream IncusOS image architecture.
 	Arch string `json:"arch"`
 
+	// Version selects the upstream IncusOS image version.
 	Version ImageVersion `json:"version"`
 }
 
+// ImageOutput describes the local image artifact produced by the build.
 type ImageOutput struct {
+	// Dir is the output directory for the generated image artifact.
 	Dir NonEmptyString `json:"dir"`
 
+	// ArtifactName is the output file name for the generated image artifact.
 	ArtifactName NonEmptyString `json:"artifactName"`
 
+	// Size is the expected image size written into the IncusOS seed metadata.
 	Size ImageSize `json:"size"`
 
+	// Format is the compressed image artifact format.
 	Format ImageFormat `json:"format"`
 }
 
+// Application is an IncusOS application entry to enable during first boot.
 type Application struct {
+	// Name is the IncusOS application name.
 	Name NonEmptyString `json:"name"`
 }
 
+// ApplicationsSeed is the contents of applications.yaml in the image seed.
 type ApplicationsSeed struct {
+	// Version is the applications.yaml schema version.
 	Version string `json:"version"`
 
+	// Applications is the non-empty set of IncusOS applications to enable.
 	Applications []Application `json:"applications"`
 }
 
+// TrustedClientCertificate is an exact trusted Incus client certificate entry.
 type TrustedClientCertificate struct {
+	// Name is the stable name for the trusted client certificate.
 	Name NonEmptyString `json:"name"`
 
+	// Type is the Incus certificate type.
 	Type string `json:"type"`
 
+	// Certificate is the PEM-encoded certificate loaded from secrets.
 	Certificate SecretString `json:"certificate"`
 }
 
+// IncusPreseed is the Incus preseed payload rendered into incus.yaml.
 type IncusPreseed struct {
+	// Config contains optional Incus daemon configuration keys.
 	Config map[string]string `json:"config,omitempty"`
 
+	// Certificates is the non-empty set of trusted client certificates to seed.
 	Certificates []TrustedClientCertificate `json:"certificates"`
 }
 
+// IncusSeed is the contents of incus.yaml in the image seed.
 type IncusSeed struct {
+	// Version is the incus.yaml schema version.
 	Version string `json:"version"`
 
+	// ApplyDefaults controls whether IncusOS applies its default preseed values.
 	ApplyDefaults bool `json:"apply_defaults"`
 
+	// Preseed is the Incus server configuration applied on first boot.
 	Preseed IncusPreseed `json:"preseed"`
 }
 
+// Seed describes the full IncusOS seed payload written into the image.
 type Seed struct {
+	// Offset is the byte offset where seed data is written in the image.
 	Offset SeedOffset `json:"offset"`
 
+	// Applications is the applications.yaml seed payload.
 	Applications ApplicationsSeed `json:"applications"`
 
+	// Incus is the incus.yaml seed payload.
 	Incus IncusSeed `json:"incus"`
 }
 
+// ImageBuild is the top-level IncusOS image download, verification, and seed contract.
 type ImageBuild struct {
+	// Name is the stable build name used in logs and generated metadata.
 	Name NonEmptyString `json:"name"`
 
+	// Source describes the upstream IncusOS image to download.
 	Source ImageSource `json:"source"`
 
+	// Output describes the local image artifact produced by the build.
 	Output ImageOutput `json:"output"`
 
+	// Seed describes the first-boot configuration written into the image.
 	Seed Seed `json:"seed"`
 }
