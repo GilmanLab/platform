@@ -5,6 +5,7 @@ projects:
     github-token-broker: 'services/github-token-broker'
     labctl: 'tools/labctl'
     root: '.'
+    schemas: 'schemas'
 
 defaultProject: 'root'
 

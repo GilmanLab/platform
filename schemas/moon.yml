@@ -1,0 +1,78 @@
+layer: 'library'
+tags:
+  - 'cue'
+  - 'go'
+  - 'schemas'
+
+project:
+  title: 'schemas'
+  description: 'Shared CUE schemas and generated Go types for GilmanLab platform tooling.'
+  owner: 'GilmanLab'
+  maintainers:
+    - 'josh'
+
+tasks:
+  format:
+    command: 'proto exec --tools-from-config -- cue fmt --check --files .'
+    toolchains: 'system'
+    inputs:
+      - '/.prototools'
+      - '/.moon/proto/cue.toml'
+      - '**/*.cue'
+    options:
+      cache: false
+
+  tidy:
+    command: 'proto exec --tools-from-config -- cue mod tidy --check'
+    toolchains: 'system'
+    inputs:
+      - '/.prototools'
+      - '/.moon/proto/cue.toml'
+      - 'cue.mod/module.cue'
+      - '**/*.cue'
+    options:
+      cache: false
+
+  vet:
+    command: 'proto exec --tools-from-config -- cue vet -c ./...'
+    toolchains: 'system'
+    inputs:
+      - '/.prototools'
+      - '/.moon/proto/cue.toml'
+      - 'cue.mod/module.cue'
+      - '**/*.cue'
+    options:
+      cache: false
+
+  generate-check:
+    command: 'bash -lc "proto exec --tools-from-config -- bash scripts/generate-go.sh && git diff --exit-code -- ."'
+    toolchains: 'system'
+    inputs:
+      - '/.prototools'
+      - '/.moon/proto/cue.toml'
+      - 'cue.mod/module.cue'
+      - '**/*.cue'
+      - 'scripts/generate-go.sh'
+      - '**/cue_types*_gen.go'
+    options:
+      cache: false
+
+  test:
+    command: 'go test ./...'
+    toolchains: 'system'
+    inputs:
+      - '**/*.go'
+      - 'go.mod'
+    options:
+      cache: false
+
+  check:
+    deps:
+      - 'schemas:format'
+      - 'schemas:tidy'
+      - 'schemas:vet'
+      - 'schemas:generate-check'
+      - 'schemas:test'
+    options:
+      cache: false
+      runInCI: true
