@@ -2,6 +2,7 @@
   "bootstrap/cilium": "1.2.0",
   "bootstrap/argocd": "1.1.0",
   "bootstrap/kro": "1.1.0",
+  "bootstrap/k0s": "0.1.0",
   "services/dns-mirror": "0.3.0",
   "services/github-token-broker": "0.2.1"
 }
