@@ -1,15 +1,9 @@
 # GilmanLab Schemas
 
-This module contains reusable schema contracts for GilmanLab platform tooling.
+This module contains shared CUE schemas for GilmanLab platform tooling.
 
-CUE definitions are the source of truth. Generated Go structs are committed so
-Go consumers can depend on the same contract without duplicating hand-written
-types.
-
-The first package is intentionally narrow:
-
-- `incusos` defines the IncusOS image build and seed contract used by future
-  `labctl` image commands.
+The CUE definitions are the source of truth. Generated Go types are committed
+for Go consumers that need typed access to the same contracts.
 
 Validate and regenerate from this directory:
 
