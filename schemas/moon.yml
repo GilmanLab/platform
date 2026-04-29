@@ -13,7 +13,7 @@ project:
 
 tasks:
   format:
-    command: 'proto exec --tools-from-config -- cue fmt --check --files .'
+    command: 'cue fmt --check --files .'
     toolchains: 'system'
     inputs:
       - '/.prototools'
@@ -23,7 +23,7 @@ tasks:
       cache: false
 
   tidy:
-    command: 'proto exec --tools-from-config -- cue mod tidy --check'
+    command: 'cue mod tidy --check'
     toolchains: 'system'
     inputs:
       - '/.prototools'
@@ -34,7 +34,7 @@ tasks:
       cache: false
 
   vet:
-    command: 'proto exec --tools-from-config -- cue vet -c ./...'
+    command: 'cue vet -c ./...'
     toolchains: 'system'
     inputs:
       - '/.prototools'
@@ -45,7 +45,7 @@ tasks:
       cache: false
 
   generate-check:
-    command: 'bash -lc "proto exec --tools-from-config -- bash scripts/generate-go.sh && git diff --exit-code -- ."'
+    command: 'bash -lc "bash scripts/generate-go.sh && git diff --exit-code -- ."'
     toolchains: 'system'
     inputs:
       - '/.prototools'

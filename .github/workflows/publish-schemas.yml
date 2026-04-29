@@ -83,10 +83,10 @@ jobs:
         working-directory: ${{ steps.target.outputs.schemas_dir }}
         env:
           CUE_REGISTRY: file:${{ github.workspace }}/.github/cue-registry.cue
-        run: proto exec --tools-from-config -- cue mod publish --dry-run "${{ steps.target.outputs.version }}"
+        run: cue mod publish --dry-run "${{ steps.target.outputs.version }}"
 
       - name: Publish CUE Module
         working-directory: ${{ steps.target.outputs.schemas_dir }}
         env:
           CUE_REGISTRY: file:${{ github.workspace }}/.github/cue-registry.cue
-        run: proto exec --tools-from-config -- cue mod publish "${{ steps.target.outputs.version }}"
+        run: cue mod publish "${{ steps.target.outputs.version }}"
