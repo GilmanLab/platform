@@ -17,6 +17,7 @@ tasks:
     toolchains: 'system'
     inputs:
       - '/.prototools'
+      - '/.moon/proto/cue.toml'
       - '/.moon/proto/hadolint.toml'
       - 'Dockerfile'
     options:
@@ -40,6 +41,7 @@ tasks:
     toolchains: 'system'
     inputs:
       - '/.prototools'
+      - '/.moon/proto/cue.toml'
       - 'k0s.cue'
     options:
       cache: false
@@ -64,6 +66,7 @@ tasks:
     toolchains: 'system'
     inputs:
       - '/.prototools'
+      - '/.moon/proto/cue.toml'
       - '/.moon/proto/hadolint.toml'
       - 'Dockerfile'
       - 'README.md'
