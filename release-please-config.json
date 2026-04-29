@@ -84,6 +84,19 @@
         "CHANGELOG.md",
         "VERSION"
       ]
+    },
+    "schemas": {
+      "component": "schemas",
+      "include-component-in-tag": true,
+      "tag-separator": "/",
+      "changelog-path": "CHANGELOG.md",
+      "version-file": "VERSION",
+      "initial-version": "0.1.0",
+      "bump-minor-pre-major": true,
+      "exclude-paths": [
+        "CHANGELOG.md",
+        "VERSION"
+      ]
     }
   },
   "changelog-sections": [
