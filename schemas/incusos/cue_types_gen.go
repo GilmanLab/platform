@@ -43,7 +43,7 @@ type ImageOutput struct {
 
 	Size ImageSize `json:"size"`
 
-	Format string `json:"format"`
+	Format ImageFormat `json:"format"`
 }
 
 type Application struct {
