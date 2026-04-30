@@ -97,6 +97,20 @@
         "CHANGELOG.md",
         "VERSION"
       ]
+    },
+    "tools/labctl": {
+      "component": "labctl",
+      "include-component-in-tag": true,
+      "changelog-path": "CHANGELOG.md",
+      "version-file": "VERSION",
+      "initial-version": "0.1.0",
+      "bump-minor-pre-major": true,
+      "draft": true,
+      "force-tag-creation": true,
+      "exclude-paths": [
+        "CHANGELOG.md",
+        "VERSION"
+      ]
     }
   },
   "changelog-sections": [

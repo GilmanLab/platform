@@ -1,0 +1,311 @@
+name: Publish labctl
+
+on:
+  push:
+    tags:
+      - 'labctl-v*'
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+      artifact-metadata: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up Go
+        uses: actions/setup-go@44694675825211faa026b3c33043df3e48a5fa00 # v6.0.0
+        with:
+          go-version-file: tools/labctl/go.mod
+          cache: false
+
+      - name: Install Syft
+        uses: anchore/sbom-action/download-syft@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
+
+      - name: Verify GoReleaser Pro secret
+        env:
+          GORELEASER_KEY: ${{ secrets.GORELEASER_KEY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ -z "${GORELEASER_KEY}" ]]; then
+            echo "GORELEASER_KEY is required for labctl release publishing." >&2
+            exit 1
+          fi
+
+      - name: Resolve release
+        id: release
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          tag="${GITHUB_REF_NAME}"
+          case "${tag}" in
+            labctl-v*) ;;
+            *)
+              echo "unsupported tag: ${tag}" >&2
+              exit 1
+              ;;
+          esac
+
+          version="${tag#labctl-v}"
+          file_version="$(tr -d '\n' < tools/labctl/VERSION)"
+
+          if [[ -z "${version}" || "${version}" == "${tag}" ]]; then
+            echo "could not resolve labctl version from ${tag}" >&2
+            exit 1
+          fi
+          if [[ "${version}" != "${file_version}" ]]; then
+            echo "tag version ${version} does not match tools/labctl/VERSION ${file_version}" >&2
+            exit 1
+          fi
+
+          echo "version=${version}" >>"${GITHUB_OUTPUT}"
+          echo "binary_name=labctl" >>"${GITHUB_OUTPUT}"
+          echo "package_name=labctl" >>"${GITHUB_OUTPUT}"
+          echo "asset_prefix=labctl_" >>"${GITHUB_OUTPUT}"
+
+      - name: Wait for Release Please draft
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          for attempt in {1..30}; do
+            if draft="$(gh release view "${GITHUB_REF_NAME}" --repo "${GITHUB_REPOSITORY}" --json isDraft --jq .isDraft 2>/dev/null)"; then
+              if [[ "${draft}" == "true" ]]; then
+                exit 0
+              fi
+              echo "release ${GITHUB_REF_NAME} exists but is not a draft" >&2
+              exit 1
+            fi
+            sleep 5
+          done
+
+          echo "timed out waiting for Release Please draft ${GITHUB_REF_NAME}" >&2
+          exit 1
+
+      - name: Build release artifacts
+        uses: goreleaser/goreleaser-action@e24998b8b67b290c2fa8b7c14fcfa7de2c5c9b8c # v7.1.0
+        with:
+          distribution: goreleaser-pro
+          version: v2.15.4
+          workdir: tools/labctl
+          args: release --clean --skip=publish
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GORELEASER_KEY: ${{ secrets.GORELEASER_KEY }}
+
+      - name: Materialize named release assets
+        working-directory: tools/labctl
+        env:
+          ASSET_PREFIX: ${{ steps.release.outputs.asset_prefix }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          jq -r --arg asset_prefix "${ASSET_PREFIX}" '
+            .[]
+            | select(.type == "Binary")
+            | select(.name | startswith($asset_prefix))
+            | [.path, .name]
+            | @tsv
+          ' dist/artifacts.json | while IFS=$'\t' read -r source name; do
+            cp "${source}" "dist/${name}"
+            chmod 0755 "dist/${name}"
+          done
+
+          (cd dist && shasum -a 256 -c checksums.txt)
+
+      - name: Smoke test released binary version metadata
+        working-directory: tools/labctl
+        env:
+          BINARY_NAME: ${{ steps.release.outputs.binary_name }}
+          EXPECTED_VERSION: ${{ steps.release.outputs.version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          host_os="$(go env GOHOSTOS)"
+          host_arch="$(go env GOHOSTARCH)"
+          expected_version="${EXPECTED_VERSION}"
+          binary_name="${BINARY_NAME}"
+          bin="$(find dist -type f -name "${binary_name}" | grep "/${binary_name}_${host_os}_${host_arch}_" | head -n 1 || true)"
+
+          if [[ -z "${bin}" || ! -f "${bin}" ]]; then
+            echo "failed to locate host binary in dist/" >&2
+            find dist -maxdepth 2 -type f | sort >&2
+            exit 1
+          fi
+
+          version_output="$("${bin}" version)"
+          printf 'version output: %s\n' "${version_output}"
+
+          [[ "${version_output}" == "labctl ${expected_version}" ]]
+
+      - name: Upload release assets
+        working-directory: tools/labctl
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ASSET_PREFIX: ${{ steps.release.outputs.asset_prefix }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mapfile -t assets < <(
+            jq -r --arg asset_prefix "${ASSET_PREFIX}" '
+              .[]
+              | select(
+                  (.type == "Binary" and (.name | startswith($asset_prefix))) or
+                  (.type == "SBOM") or
+                  (.type == "Checksum" and .name == "checksums.txt")
+                )
+              | "dist/" + .name
+            ' dist/artifacts.json | sort
+          )
+
+          if [[ "${#assets[@]}" -ne 9 ]]; then
+            echo "expected 9 release assets, found ${#assets[@]}" >&2
+            printf '%s\n' "${assets[@]}" >&2
+            exit 1
+          fi
+
+          gh release upload "${GITHUB_REF_NAME}" \
+            "${assets[@]}" \
+            --repo "${GITHUB_REPOSITORY}" \
+            --clobber
+
+      - name: Attest released files listed in checksums.txt
+        uses: actions/attest@59d89421af93a897026c735860bf21b6eb4f7b26 # v4.1.0
+        with:
+          subject-checksums: ./tools/labctl/dist/checksums.txt
+
+      - name: Mark draft release ready for human inspection
+        working-directory: tools/labctl
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BINARY_NAME: ${{ steps.release.outputs.binary_name }}
+          PACKAGE_NAME: ${{ steps.release.outputs.package_name }}
+          VERSION: ${{ steps.release.outputs.version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          release_json="$(gh release view "${GITHUB_REF_NAME}" \
+            --repo "${GITHUB_REPOSITORY}" \
+            --json assets,isDraft,tagName,targetCommitish,url)"
+
+          if [[ "$(jq -r '.isDraft' <<<"${release_json}")" != "true" ]]; then
+            echo "release ${GITHUB_REF_NAME} is not a draft" >&2
+            exit 1
+          fi
+
+          if ! jq -e '.assets[] | select(.name == "checksums.txt" and .state == "uploaded")' \
+            <<<"${release_json}" >/dev/null; then
+            echo "draft release is missing uploaded checksums.txt asset" >&2
+            exit 1
+          fi
+
+          awk '{print $2 "\tsha256:" $1}' dist/checksums.txt | sort >expected-assets.tsv
+          jq -r '
+            .assets[]
+            | select(.name != "checksums.txt")
+            | [.name, .digest]
+            | @tsv
+          ' <<<"${release_json}" | sort >uploaded-assets.tsv
+
+          if ! cmp -s expected-assets.tsv uploaded-assets.tsv; then
+            echo "uploaded draft asset digests do not match dist/checksums.txt" >&2
+            diff -u expected-assets.tsv uploaded-assets.tsv >&2 || true
+            exit 1
+          fi
+
+          expected_count="$(wc -l <expected-assets.tsv | tr -d ' ')"
+          uploaded_count="$(wc -l <uploaded-assets.tsv | tr -d ' ')"
+          total_count="$(jq '.assets | length' <<<"${release_json}")"
+
+          if [[ "${expected_count}" != "${uploaded_count}" || "${total_count}" != "9" ]]; then
+            echo "expected ${expected_count} checksum-covered assets plus checksums.txt; found ${total_count} total assets" >&2
+            exit 1
+          fi
+
+          release_url="$(jq -r '.url' <<<"${release_json}")"
+          target_commitish="$(jq -r '.targetCommitish' <<<"${release_json}")"
+
+          {
+            echo "## Draft release ready for inspection"
+            echo
+            echo "- Repository: \`${GITHUB_REPOSITORY}\`"
+            echo "- Tag: \`${GITHUB_REF_NAME}\`"
+            echo "- Package: \`${PACKAGE_NAME}\`"
+            echo "- Target commit: \`${target_commitish}\`"
+            echo "- Draft release: ${release_url}"
+            echo "- Uploaded assets: ${total_count} total (${expected_count} checksum-covered assets plus \`checksums.txt\`)"
+            echo
+            echo "### Checksum-covered assets"
+            echo
+            echo "| Asset | SHA-256 |"
+            echo "| --- | --- |"
+            awk -F'\t' '{
+              digest = $2
+              sub(/^sha256:/, "", digest)
+              printf "| `%s` | `%s` |\n", $1, digest
+            }' expected-assets.tsv
+            echo
+            echo "### Inspect locally"
+            echo
+            echo '```sh'
+            echo "tag=\"${GITHUB_REF_NAME}\""
+            echo "repo=\"${GITHUB_REPOSITORY}\""
+            echo 'tmp="$(mktemp -d)"'
+            echo 'gh release view "${tag}" -R "${repo}" --json isDraft,isImmutable,tagName,targetCommitish,assets'
+            echo 'gh release download "${tag}" -R "${repo}" -D "${tmp}" --pattern "*"'
+            echo '(cd "${tmp}" && shasum -a 256 -c checksums.txt)'
+            echo "asset=\"${BINARY_NAME}_${VERSION}_\$(go env GOOS)_\$(go env GOARCH)\""
+            echo 'gh attestation verify "${tmp}/${asset}" --repo "${repo}" --signer-workflow "${repo}/.github/workflows/publish-labctl.yml" --source-ref "refs/tags/${tag}" --deny-self-hosted-runners'
+            echo '```'
+            echo
+            echo "### Publish after inspection"
+            echo
+            echo '```sh'
+            echo "gh release edit \"${GITHUB_REF_NAME}\" -R \"${GITHUB_REPOSITORY}\" --draft=false --latest=false"
+            echo '```'
+            echo
+            echo "### Reject before publication"
+            echo
+            echo '```sh'
+            echo "gh release delete \"${GITHUB_REF_NAME}\" -R \"${GITHUB_REPOSITORY}\" --cleanup-tag"
+            echo '```'
+            echo
+            echo "### Validate after publishing"
+            echo
+            echo '```sh'
+            echo "tag=\"${GITHUB_REF_NAME}\""
+            echo "repo=\"${GITHUB_REPOSITORY}\""
+            echo 'tmp="$(mktemp -d)"'
+            echo 'gh release download "${tag}" -R "${repo}" -D "${tmp}" --pattern "*"'
+            echo "asset=\"${BINARY_NAME}_${VERSION}_\$(go env GOOS)_\$(go env GOARCH)\""
+            echo 'gh release verify "${tag}" -R "${repo}"'
+            echo 'gh release verify-asset "${tag}" "${tmp}/${asset}" -R "${repo}"'
+            echo "ghd download \"${GITHUB_REPOSITORY}/labctl@${VERSION}\" --output \"\${tmp}/ghd\""
+            echo "ghd repo add \"${GITHUB_REPOSITORY}\""
+            echo "ghd install \"labctl@${VERSION}\""
+            echo '```'
+            echo
+            echo "Rejected drafts may leave stale GitHub-native artifact attestations. That is expected and tolerated because consumers still require immutable release attestation plus provenance."
+          } >>"${GITHUB_STEP_SUMMARY}"

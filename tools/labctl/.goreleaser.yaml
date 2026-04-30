@@ -1,0 +1,54 @@
+# yaml-language-server: $schema=https://goreleaser.com/static/schema-pro.json
+version: 2
+pro: true
+
+project_name: labctl
+
+monorepo:
+  tag_prefix: labctl-
+
+before:
+  hooks:
+    - go test ./...
+
+builds:
+  - id: labctl
+    main: ./cmd/labctl
+    binary: labctl
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w -buildid=
+      - -X main.version={{ .Version }}
+
+archives:
+  - id: labctl
+    ids:
+      - labctl
+    formats:
+      - binary
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+
+checksum:
+  name_template: checksums.txt
+
+sboms:
+  - artifacts: binary
+
+release:
+  draft: true
+  use_existing_draft: true
+  replace_existing_artifacts: true
+  make_latest: false
+  mode: keep-existing
+
+changelog:
+  disable: true
