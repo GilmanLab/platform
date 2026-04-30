@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.1](https://github.com/GilmanLab/platform/compare/dns-mirror-v0.3.0...dns-mirror-v0.3.1) (2026-04-30)
+
+
+### Bug Fixes
+
+* **dns-mirror:** derive SOA serial from zone content ([#52](https://github.com/GilmanLab/platform/issues/52)) ([4535bab](https://github.com/GilmanLab/platform/commit/4535bab543e71b18fda6be7325859712d1cd0eac))
+
 ## [0.3.0](https://github.com/GilmanLab/platform/compare/dns-mirror-v0.2.0...dns-mirror-v0.3.0) (2026-04-21)
 
 
