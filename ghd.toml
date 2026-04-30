@@ -1,0 +1,32 @@
+version = 1
+
+[provenance]
+signer_workflow = "GilmanLab/platform/.github/workflows/publish-labctl.yml"
+
+[[packages]]
+name = "labctl"
+description = "Homelab day-to-day and bootstrap operations CLI."
+tag_pattern = "labctl-v${version}"
+
+[[packages.assets]]
+os = "darwin"
+arch = "amd64"
+pattern = "labctl_${version}_darwin_amd64"
+
+[[packages.assets]]
+os = "darwin"
+arch = "arm64"
+pattern = "labctl_${version}_darwin_arm64"
+
+[[packages.assets]]
+os = "linux"
+arch = "amd64"
+pattern = "labctl_${version}_linux_amd64"
+
+[[packages.assets]]
+os = "linux"
+arch = "arm64"
+pattern = "labctl_${version}_linux_arm64"
+
+[[packages.binaries]]
+path = "labctl"
