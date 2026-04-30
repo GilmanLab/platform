@@ -21,11 +21,11 @@ jobs:
     permissions:
       contents: read
     env:
-      RELEASE_DRY_RUN_REQUIRED: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+      RELEASE_DRY_RUN_REQUIRED: ${{ github.event_name != 'pull_request' || (startsWith(github.head_ref, 'release-please--branches--') && github.event.pull_request.head.repo.full_name == github.repository) }}
     steps:
-      - name: Skip unavailable fork pull request
+      - name: Skip non-release pull request
         if: env.RELEASE_DRY_RUN_REQUIRED != 'true'
-        run: echo "labctl release dry run is skipped for fork pull requests because GoReleaser Pro credentials are not available."
+        run: echo "labctl release dry run is not required for this pull request."
 
       - name: Checkout
         if: env.RELEASE_DRY_RUN_REQUIRED == 'true'
