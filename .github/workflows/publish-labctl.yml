@@ -286,6 +286,8 @@ jobs:
             echo "gh release edit \"${GITHUB_REF_NAME}\" -R \"${GITHUB_REPOSITORY}\" --draft=false --latest=false"
             echo '```'
             echo
+            echo "Publishing the release triggers \`.github/workflows/publish-labctl-image.yml\` to publish and attest \`ghcr.io/gilmanlab/platform/labctl:${VERSION}\`."
+            echo
             echo "### Reject before publication"
             echo
             echo '```sh'

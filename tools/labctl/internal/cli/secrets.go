@@ -1,8 +1,6 @@
 package cli
 
 import (
-	"fmt"
-
 	"github.com/spf13/cobra"
 
 	"github.com/gilmanlab/platform/tools/labctl/internal/adapters/githubbroker"
@@ -16,6 +14,8 @@ const (
 
 type secretsGetFlags struct {
 	field          string
+	format         string
+	output         string
 	ref            string
 	source         string
 	repoDir        string
@@ -45,6 +45,10 @@ func newSecretsGetCommand(service appsecrets.Service, opts Options) *cobra.Comma
 		Short: "Decrypt a SOPS secret from the lab secrets repository",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := validateSecretOutputFormat(flags.format); err != nil {
+				return err
+			}
+
 			result, err := service.Get(cmd.Context(), appsecrets.Request{
 				Path:         args[0],
 				Ref:          flags.ref,
@@ -63,8 +67,12 @@ func newSecretsGetCommand(service appsecrets.Service, opts Options) *cobra.Comma
 				return err
 			}
 
-			if _, err := opts.Stdout.Write(result.Data); err != nil {
-				return fmt.Errorf("write secret output: %w", err)
+			data, err := renderSecretData(flags.format, result.Data)
+			if err != nil {
+				return err
+			}
+			if err := writeSecretData(opts.Stdout, flags.output, data); err != nil {
+				return err
 			}
 
 			return nil
@@ -72,6 +80,8 @@ func newSecretsGetCommand(service appsecrets.Service, opts Options) *cobra.Comma
 	}
 
 	cmd.Flags().StringVar(&flags.field, "field", "", "RFC 6901 JSON Pointer to extract from the decrypted YAML")
+	cmd.Flags().StringVar(&flags.format, "format", secretOutputFormatYAML, "output format: yaml or json")
+	cmd.Flags().StringVarP(&flags.output, "output", "o", "", "write output to path instead of stdout (- for stdout)")
 	cmd.Flags().StringVar(&flags.ref, "ref", appsecrets.DefaultRef, "Git ref for GitHub source fetches")
 	cmd.Flags().
 		StringVar(&flags.source, "source", string(appsecrets.SourceAuto), "secret source: auto, local, or github")
