@@ -20,14 +20,35 @@ package incusos
 // SeedOffset is the byte offset where seed data is written in the image.
 #SeedOffset: (int & >0) | error("seed offset must be a positive integer")
 
-// SecretRef points at a field in a SOPS-managed secret document.
+// SecretPath is a repo-relative path inside GilmanLab/secrets.
+#SecretPath: (#NonEmptyString & !~"^/" & !~"(^|/)\\.\\.(/|$)" & !~"\\\\") |
+	error("secret path must be repository-relative and use forward slashes")
+
+// JSONPointer is an RFC 6901 JSON Pointer, or empty when selecting a whole document.
+#JSONPointer: ("" | =~"^/") | error("secret pointer must be empty or start with /")
+
+// RequiredJSONPointer is an RFC 6901 JSON Pointer that selects a field.
+#RequiredJSONPointer: (#NonEmptyString & =~"^/") |
+	error("secret string pointer must be an RFC 6901 JSON Pointer")
+
+// SecretRef points at a SOPS-managed secret document and optional field.
 #SecretRef: {
 	@go(SecretRef)
 
 	// Path is the repo-relative path to the SOPS-managed secret document.
-	path!: #NonEmptyString
-	// Field is the field name inside the secret document.
-	field!: #NonEmptyString
+	path!: #SecretPath
+	// Pointer is the optional RFC 6901 JSON Pointer inside the secret document.
+	pointer?: #JSONPointer @go(Pointer)
+}
+
+// SecretStringRef points at a required string field in a SOPS-managed secret document.
+#SecretStringRef: {
+	@go(SecretStringRef)
+
+	// Path is the repo-relative path to the SOPS-managed secret document.
+	path!: #SecretPath
+	// Pointer is the RFC 6901 JSON Pointer inside the secret document.
+	pointer!: #RequiredJSONPointer @go(Pointer)
 }
 
 // SecretString models a string value sourced from an external secret.
@@ -35,7 +56,7 @@ package incusos
 	@go(SecretString)
 
 	// SecretRef identifies the secret field that supplies the value.
-	secretRef!: #SecretRef
+	secretRef!: #SecretStringRef
 }
 
 // ImageSource describes where to download the upstream IncusOS image from.

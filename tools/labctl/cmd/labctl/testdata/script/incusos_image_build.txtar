@@ -1,0 +1,42 @@
+exec labctl bootstrap incusos image build --help
+stdout 'Build a seeded IncusOS image'
+stdout '--json'
+stdout '--secrets-source'
+stdout '--secrets-ref'
+stdout '--secrets-repo-dir'
+! stderr .
+
+! exec labctl bootstrap incusos image build invalid.yaml
+stderr 'validate invalid.yaml'
+stderr 'format must be img.gz'
+! stdout .
+
+stdin invalid.yaml
+! exec labctl bootstrap incusos image build -
+stderr 'validate stdin.yaml'
+stderr 'format must be img.gz'
+! stdout .
+
+-- invalid.yaml --
+name: incusos-test
+source:
+  indexURL: https://images.example.test/os/index.json
+  baseURL: https://images.example.test/os
+output:
+  dir: .state/images
+  artifactName: incusos.img.gz
+  size: 1G
+  format: iso
+seed:
+  offset: 4096
+  applications:
+    applications:
+      - name: incus
+  incus:
+    preseed:
+      certificates:
+        - name: bootstrap-client
+          certificate:
+            secretRef:
+              path: compute/incusos/bootstrap-client.sops.yaml
+              pointer: /client_crt_pem

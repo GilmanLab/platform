@@ -38,8 +38,8 @@ build: incusos.#ImageBuild & {
 				certificates: [{
 					name: "bootstrap-client"
 					certificate: secretRef: {
-						path:  "compute/incusos/bootstrap-client.sops.yaml"
-						field: "client_crt_pem"
+						path:    "compute/incusos/bootstrap-client.sops.yaml"
+						pointer: "/client_crt_pem"
 					}
 				}]
 			}

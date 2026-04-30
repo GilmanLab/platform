@@ -15,6 +15,10 @@ tasks:
     command: 'bash -lc "if find . -name ''*.go'' -not -path ''./vendor/*'' -print -quit | grep -q .; then go tool golangci-lint run --config .golangci.yml ./...; else echo ''no Go files to lint''; fi"'
     toolchains: 'system'
     inputs:
+      - '/go.work'
+      - '/go.work.sum'
+      - '/schemas/lab/**/*.cue'
+      - '/schemas/lab/**/*.go'
       - '**/*.go'
       - '.golangci.yml'
       - 'go.mod'
@@ -26,6 +30,10 @@ tasks:
     command: 'bash -lc "if find . -name ''*.go'' -not -path ''./vendor/*'' -print -quit | grep -q .; then go tool golangci-lint fmt --config .golangci.yml --diff; else echo ''no Go files to format''; fi"'
     toolchains: 'system'
     inputs:
+      - '/go.work'
+      - '/go.work.sum'
+      - '/schemas/lab/**/*.cue'
+      - '/schemas/lab/**/*.go'
       - '**/*.go'
       - '.golangci.yml'
       - 'go.mod'
@@ -37,6 +45,10 @@ tasks:
     command: 'bash -lc "if find . -name ''*.go'' -not -path ''./vendor/*'' -print -quit | grep -q .; then go test ./...; else echo ''no Go packages to test''; fi"'
     toolchains: 'system'
     inputs:
+      - '/go.work'
+      - '/go.work.sum'
+      - '/schemas/lab/**/*.cue'
+      - '/schemas/lab/**/*.go'
       - '**/*.go'
       - 'cmd/labctl/testdata/**/*'
       - 'go.mod'

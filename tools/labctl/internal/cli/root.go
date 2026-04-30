@@ -79,6 +79,7 @@ func newRootCommand(deps composition.Dependencies, opts Options) *cobra.Command 
 	}
 
 	bindGlobalFlags(cmd, &flags)
+	cmd.AddCommand(newBootstrapCommand(deps, opts, &flags))
 	cmd.AddCommand(newVersionCommand(deps.Version, opts, &flags))
 	cmd.AddCommand(newSecretsCommand(deps.Secrets, opts))
 
