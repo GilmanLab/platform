@@ -1,0 +1,152 @@
+name: Publish labctl Image
+
+on:
+  release:
+    types:
+      - published
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.release.tag_name }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: startsWith(github.event.release.tag_name, 'labctl-v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+      attestations: write
+      artifact-metadata: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ github.event.release.tag_name }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up Go
+        uses: actions/setup-go@44694675825211faa026b3c33043df3e48a5fa00 # v6.0.0
+        with:
+          go-version-file: tools/labctl/go.mod
+          cache: false
+
+      - name: Install Syft
+        uses: anchore/sbom-action/download-syft@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
+
+      - name: Verify GoReleaser Pro secret
+        env:
+          GORELEASER_KEY: ${{ secrets.GORELEASER_KEY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ -z "${GORELEASER_KEY}" ]]; then
+            echo "GORELEASER_KEY is required for labctl image publishing." >&2
+            exit 1
+          fi
+
+      - name: Resolve release
+        id: release
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          tag="${{ github.event.release.tag_name }}"
+          case "${tag}" in
+            labctl-v*) ;;
+            *)
+              echo "unsupported tag: ${tag}" >&2
+              exit 1
+              ;;
+          esac
+
+          version="${tag#labctl-v}"
+          file_version="$(tr -d '\n' < tools/labctl/VERSION)"
+
+          if [[ -z "${version}" || "${version}" == "${tag}" ]]; then
+            echo "could not resolve labctl version from ${tag}" >&2
+            exit 1
+          fi
+          if [[ "${version}" != "${file_version}" ]]; then
+            echo "tag version ${version} does not match tools/labctl/VERSION ${file_version}" >&2
+            exit 1
+          fi
+
+          image="ghcr.io/gilmanlab/platform/labctl"
+          echo "tag=${tag}" >>"${GITHUB_OUTPUT}"
+          echo "version=${version}" >>"${GITHUB_OUTPUT}"
+          echo "image=${image}" >>"${GITHUB_OUTPUT}"
+          echo "image_ref=${image}:${version}" >>"${GITHUB_OUTPUT}"
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@29109295f81e9208d7d86ff1c6c12d2833863392 # v3.6.0
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
+
+      - name: Log in to GHCR
+        uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef # v3.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish image
+        uses: goreleaser/goreleaser-action@e24998b8b67b290c2fa8b7c14fcfa7de2c5c9b8c # v7.1.0
+        with:
+          distribution: goreleaser-pro
+          version: v2.15.4
+          workdir: tools/labctl
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GORELEASER_KEY: ${{ secrets.GORELEASER_KEY }}
+          LABCTL_IMAGE_ONLY: "true"
+          LABCTL_PUBLISH_IMAGE: "true"
+
+      - name: Validate image digest metadata
+        working-directory: tools/labctl
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          test -s dist/digests.txt
+          cat dist/digests.txt
+
+      - name: Smoke test image
+        env:
+          IMAGE_REF: ${{ steps.release.outputs.image_ref }}
+          EXPECTED_VERSION: ${{ steps.release.outputs.version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          version_output="$(docker run --rm "${IMAGE_REF}" version)"
+          printf 'version output: %s\n' "${version_output}"
+
+          [[ "${version_output}" == "labctl ${EXPECTED_VERSION}" ]]
+
+      - name: Attest published image digest
+        uses: actions/attest@59d89421af93a897026c735860bf21b6eb4f7b26 # v4.1.0
+        with:
+          subject-checksums: ./tools/labctl/dist/digests.txt
+
+      - name: Verify image attestation
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          IMAGE_REF: ${{ steps.release.outputs.image_ref }}
+          TAG_NAME: ${{ steps.release.outputs.tag }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          gh attestation verify "oci://${IMAGE_REF}" \
+            --repo "${GITHUB_REPOSITORY}" \
+            --signer-workflow "${GITHUB_REPOSITORY}/.github/workflows/publish-labctl-image.yml" \
+            --source-ref "refs/tags/${TAG_NAME}" \
+            --deny-self-hosted-runners

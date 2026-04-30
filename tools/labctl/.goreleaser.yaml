@@ -43,7 +43,31 @@ checksum:
 sboms:
   - artifacts: binary
 
+dockers_v2:
+  - id: labctl
+    ids:
+      - labctl
+    dockerfile: Dockerfile
+    images:
+      - ghcr.io/gilmanlab/platform/labctl
+    tags:
+      - "{{ .Version }}"
+    labels:
+      org.opencontainers.image.title: labctl
+      org.opencontainers.image.version: "{{ .Version }}"
+      org.opencontainers.image.revision: "{{ .FullCommit }}"
+      org.opencontainers.image.source: "{{ .GitURL }}"
+    platforms:
+      - linux/amd64
+      - linux/arm64
+    disable: '{{ ne (index .Env "LABCTL_PUBLISH_IMAGE") "true" }}'
+
+docker_digest:
+  name_template: digests.txt
+  disable: '{{ ne (index .Env "LABCTL_PUBLISH_IMAGE") "true" }}'
+
 release:
+  disable: '{{ eq (index .Env "LABCTL_IMAGE_ONLY") "true" }}'
   draft: true
   use_existing_draft: true
   replace_existing_artifacts: true
