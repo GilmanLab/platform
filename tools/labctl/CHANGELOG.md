@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.0](https://github.com/GilmanLab/platform/compare/labctl-v0.1.0...labctl-v0.2.0) (2026-04-30)
+
+
+### Features
+
+* **labctl:** add secrets output and container publishing ([#49](https://github.com/GilmanLab/platform/issues/49)) ([010ecd3](https://github.com/GilmanLab/platform/commit/010ecd3494fdd7348f2fb4733d19b9bc9f0c0e79))
+
 ## 0.1.0 (2026-04-30)
 
 
