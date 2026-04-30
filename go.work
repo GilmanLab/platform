@@ -1,0 +1,8 @@
+go 1.26
+
+use (
+	./schemas/lab
+	./services/dns-mirror
+	./services/github-token-broker
+	./tools/labctl
+)

@@ -20,19 +20,37 @@ type ImageSize string
 // SeedOffset is the byte offset where seed data is written in the image.
 type SeedOffset int64
 
-// SecretRef points at a field in a SOPS-managed secret document.
+// SecretPath is a repo-relative path inside GilmanLab/secrets.
+type SecretPath string
+
+// JSONPointer is an RFC 6901 JSON Pointer, or empty when selecting a whole document.
+type JSONPointer string
+
+// RequiredJSONPointer is an RFC 6901 JSON Pointer that selects a field.
+type RequiredJSONPointer string
+
+// SecretRef points at a SOPS-managed secret document and optional field.
 type SecretRef struct {
 	// Path is the repo-relative path to the SOPS-managed secret document.
-	Path NonEmptyString `json:"path"`
+	Path SecretPath `json:"path"`
 
-	// Field is the field name inside the secret document.
-	Field NonEmptyString `json:"field"`
+	// Pointer is the optional RFC 6901 JSON Pointer inside the secret document.
+	Pointer JSONPointer `json:"pointer,omitempty"`
+}
+
+// SecretStringRef points at a required string field in a SOPS-managed secret document.
+type SecretStringRef struct {
+	// Path is the repo-relative path to the SOPS-managed secret document.
+	Path SecretPath `json:"path"`
+
+	// Pointer is the RFC 6901 JSON Pointer inside the secret document.
+	Pointer RequiredJSONPointer `json:"pointer"`
 }
 
 // SecretString models a string value sourced from an external secret.
 type SecretString struct {
 	// SecretRef identifies the secret field that supplies the value.
-	SecretRef SecretRef `json:"secretRef"`
+	SecretRef SecretStringRef `json:"secretRef"`
 }
 
 // ImageSource describes where to download the upstream IncusOS image from.

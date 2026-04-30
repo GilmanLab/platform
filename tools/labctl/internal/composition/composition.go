@@ -6,9 +6,13 @@ import (
 	"github.com/gilmanlab/platform/tools/labctl/internal/adapters/githubauth"
 	"github.com/gilmanlab/platform/tools/labctl/internal/adapters/githubbroker"
 	"github.com/gilmanlab/platform/tools/labctl/internal/adapters/githubcontents"
+	"github.com/gilmanlab/platform/tools/labctl/internal/adapters/httpupstream"
+	"github.com/gilmanlab/platform/tools/labctl/internal/adapters/incusosconfig"
+	"github.com/gilmanlab/platform/tools/labctl/internal/adapters/localfs"
 	"github.com/gilmanlab/platform/tools/labctl/internal/adapters/secretslocal"
 	"github.com/gilmanlab/platform/tools/labctl/internal/adapters/sopsdecrypt"
 	"github.com/gilmanlab/platform/tools/labctl/internal/adapters/yamldoc"
+	"github.com/gilmanlab/platform/tools/labctl/internal/app/incusosimage"
 	appsecrets "github.com/gilmanlab/platform/tools/labctl/internal/app/secrets"
 	appversion "github.com/gilmanlab/platform/tools/labctl/internal/app/version"
 )
@@ -29,6 +33,10 @@ type Dependencies struct {
 	Version appversion.Service
 	// Secrets provides reusable encrypted secret fetching.
 	Secrets appsecrets.Service
+	// IncusOSImage builds seeded IncusOS image artifacts.
+	IncusOSImage incusosimage.Service
+	// IncusOSConfig validates IncusOS image build input.
+	IncusOSConfig incusosconfig.Validator
 }
 
 // New wires app services to their concrete adapters.
@@ -40,6 +48,11 @@ func New(input Input) Dependencies {
 		}
 	}
 
+	httpClient := input.HTTPClient
+	if httpClient == nil {
+		httpClient = http.DefaultClient
+	}
+	files := localfs.New()
 	broker := githubbroker.NewProvider(nil)
 	authProvider := githubauth.NewProvider(lookupEnv, broker)
 	githubAPIBaseURL, _ := lookupEnv(githubcontents.EnvAPIBaseURL)
@@ -48,9 +61,14 @@ func New(input Input) Dependencies {
 		Version: appversion.NewService(input.Version),
 		Secrets: appsecrets.NewService(appsecrets.Dependencies{
 			Local:          secretslocal.NewSource(lookupEnv),
-			Remote:         githubcontents.NewSource(input.HTTPClient, authProvider, githubAPIBaseURL),
+			Remote:         githubcontents.NewSource(httpClient, authProvider, githubAPIBaseURL),
 			Decrypter:      sopsdecrypt.Decrypter{},
 			FieldExtractor: yamldoc.Extractor{},
 		}),
+		IncusOSImage: incusosimage.NewService(incusosimage.Dependencies{
+			Upstream: httpupstream.New(httpClient),
+			Files:    files,
+		}),
+		IncusOSConfig: incusosconfig.New(),
 	}
 }
