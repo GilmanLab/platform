@@ -21,9 +21,10 @@ func run() int {
 	defer stop()
 
 	return cli.Run(ctx, os.Args[1:], cli.Options{
-		Version: version,
-		Stdin:   os.Stdin,
-		Stdout:  os.Stdout,
-		Stderr:  os.Stderr,
+		Version:   version,
+		LookupEnv: os.LookupEnv,
+		Stdin:     os.Stdin,
+		Stdout:    os.Stdout,
+		Stderr:    os.Stderr,
 	})
 }

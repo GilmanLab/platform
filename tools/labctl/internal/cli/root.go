@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"os"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -21,6 +22,8 @@ const (
 type Options struct {
 	// Version is the release version embedded into the labctl binary.
 	Version string
+	// LookupEnv reads process environment variables.
+	LookupEnv func(string) (string, bool)
 	// Stdin provides command input.
 	Stdin io.Reader
 	// Stdout receives command results.
@@ -38,8 +41,13 @@ type rootFlags struct {
 
 // Run executes labctl with the supplied arguments and process-level options.
 func Run(ctx context.Context, args []string, opts Options) int {
+	if opts.LookupEnv == nil {
+		opts.LookupEnv = os.LookupEnv
+	}
+
 	deps := composition.New(composition.Input{
-		Version: opts.Version,
+		Version:   opts.Version,
+		LookupEnv: opts.LookupEnv,
 	})
 
 	root := newRootCommand(deps, opts)
@@ -72,6 +80,7 @@ func newRootCommand(deps composition.Dependencies, opts Options) *cobra.Command 
 
 	bindGlobalFlags(cmd, &flags)
 	cmd.AddCommand(newVersionCommand(deps.Version, opts, &flags))
+	cmd.AddCommand(newSecretsCommand(deps.Secrets, opts))
 
 	return cmd
 }
