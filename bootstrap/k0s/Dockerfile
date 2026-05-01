@@ -82,7 +82,7 @@ RUN cue export /tmp/providers.cue \
 FROM ${K0S_IMAGE}
 
 COPY bootstrap/k0s/k0s.cue /opt/bootstrap/k0s.cue
-COPY bootstrap/k0s/manifests/providers/namespaces.yaml /var/lib/k0s/manifests/providers/00-namespaces.yaml
+COPY bootstrap/k0s/manifests/providers/namespaces.yaml /opt/bootstrap/providers/namespaces.yaml
 COPY bootstrap/k0s/bootstrap-k0s.sh /usr/local/bin/bootstrap-k0s.sh
 COPY --from=chart-builder /usr/local/bin/cue /usr/local/bin/cue
 COPY --from=chart-builder /out/cert-manager.tgz /opt/bootstrap/charts/cert-manager.tgz
@@ -92,8 +92,8 @@ COPY --from=chart-builder /out/providers.yaml /opt/bootstrap/providers/providers
 
 ENV K0S_ENTRYPOINT_ROLE=controller+worker
 
-# Namespace manifests are always present; provider CRs are staged later by the
-# helper once the operator CRDs and webhook are available.
+# Provider namespaces are staged from /opt because /var/lib/k0s is mounted at
+# runtime. Provider CRs are staged later once the operator webhook is ready.
 RUN mkdir -p /etc/k0s /opt/bootstrap/charts \
     && chmod 0755 /usr/local/bin/bootstrap-k0s.sh
 
