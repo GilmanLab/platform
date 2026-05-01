@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/GilmanLab/platform/compare/bootstrap-k0s-v0.2.0...bootstrap-k0s-v0.2.1) (2026-05-01)
+
+
+### Bug Fixes
+
+* **bootstrap-k0s:** align VyOS runtime wiring ([#54](https://github.com/GilmanLab/platform/issues/54)) ([1d1ea3f](https://github.com/GilmanLab/platform/commit/1d1ea3f4dd4a07c2feb48a0af045a2c7ccb3b62f))
+
 ## [0.2.0](https://github.com/GilmanLab/platform/compare/bootstrap-k0s-v0.1.0...bootstrap-k0s-v0.2.0) (2026-04-30)
 
 
