@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.2](https://github.com/GilmanLab/platform/compare/bootstrap-k0s-v0.2.1...bootstrap-k0s-v0.2.2) (2026-05-01)
+
+
+### Bug Fixes
+
+* **bootstrap-k0s:** enable tinkerbell dhcp binding ([#56](https://github.com/GilmanLab/platform/issues/56)) ([ab1fbb3](https://github.com/GilmanLab/platform/commit/ab1fbb38f2772aad8b1d0c5344fd779937f6cbc0))
+
 ## [0.2.1](https://github.com/GilmanLab/platform/compare/bootstrap-k0s-v0.2.0...bootstrap-k0s-v0.2.1) (2026-05-01)
 
 
