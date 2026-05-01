@@ -30,6 +30,7 @@ tasks:
       -t service_cidr=10.96.0.0/12
       -t public_ip=10.10.20.1
       -t artifacts_file_server=http://10.10.20.1:7173
+      -t dhcp_bind_addr=10.10.20.1
       -t dhcp_bind_interface=eth1.20
       -t hookos_arch=x86_64
       -t hookos_kernel_version=6.6
@@ -54,6 +55,7 @@ tasks:
       -t service_cidr=10.96.0.0/12
       -t public_ip=10.10.20.1
       -t artifacts_file_server=http://10.10.20.1:7173
+      -t dhcp_bind_addr=10.10.20.1
       -t dhcp_bind_interface=eth1.20
       -t hookos_arch=x86_64
       -t hookos_kernel_version=6.6
