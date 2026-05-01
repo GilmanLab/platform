@@ -45,6 +45,10 @@ TINKERBELL_ARTIFACTS_FILE_SERVER=http://10.10.20.1:7173
 TINKERBELL_DHCP_BIND_INTERFACE=eth1.20
 ```
 
+The VyOS-hosted bootstrap path leaves DHCP with VyOS/Kea. Tinkerbell's DHCP
+listener is disabled, while its HTTP, TFTP, gRPC, and SSH listeners bind to
+`TINKERBELL_PUBLIC_IP`.
+
 For local smoke runs, set `TINKERBELL_DHCP_BIND_INTERFACE` to an interface that
 actually exists inside the disposable bootstrap container, such as `eth0`.
 

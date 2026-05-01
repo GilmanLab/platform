@@ -36,6 +36,10 @@ cfgTrustedProxies: [for proxy in strings.Split(cfgTrustedProxiesCSV, ",") if str
 		type: "ClusterIP"
 	}
 	deployment: {
+		additionalEnvs: [{
+			name:  "TINKERBELL_BIND_ADDRESS"
+			value: cfgPublicIP
+		}]
 		hostNetwork: true
 		init: {
 			enabled: false
@@ -48,7 +52,7 @@ cfgTrustedProxies: [for proxy in strings.Split(cfgTrustedProxiesCSV, ",") if str
 				bindAddr: "0.0.0.0"
 			}
 			smee: {
-				dhcpEnabled:                  true
+				dhcpEnabled:                  false
 				dhcpMode:                     cfgDHCPMode
 				dhcpBindInterface:            cfgDHCPBindInterface
 				dhcpIPForPacket:              cfgPublicIP

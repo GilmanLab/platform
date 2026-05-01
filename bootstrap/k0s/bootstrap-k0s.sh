@@ -1,8 +1,10 @@
 #!/bin/sh
 set -eu
 
+provider_namespaces_src="/opt/bootstrap/providers/namespaces.yaml"
 provider_src="/opt/bootstrap/providers/providers.yaml"
 provider_dst_dir="/var/lib/k0s/manifests/providers"
+provider_namespaces_dst="${provider_dst_dir}/00-namespaces.yaml"
 provider_dst="${provider_dst_dir}/10-providers.yaml"
 k0s_source="/opt/bootstrap/k0s.cue"
 k0s_config="/etc/k0s/k0s.yaml"
@@ -50,6 +52,8 @@ render_k0s_config() {
 }
 
 render_k0s_config
+mkdir -p "$provider_dst_dir"
+cp "$provider_namespaces_src" "$provider_namespaces_dst"
 
 echo "starting k0s bootstrap controller"
 k0s controller --config "$k0s_config" --single --ignore-pre-flight-checks &
@@ -88,7 +92,6 @@ while :; do
 
   if k0s kubectl --request-timeout=5s apply --dry-run=server -f "$provider_src" >/dev/null 2>&1; then
     echo "operator API is ready; handing provider manifests to k0s manifest deployer"
-    mkdir -p "$provider_dst_dir"
     cp "$provider_src" "$provider_dst"
     break
   fi
