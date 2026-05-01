@@ -32,6 +32,7 @@ Optional environment variables:
 - `TINKERBELL_TRUSTED_PROXIES` defaults to `10.244.0.0/16,10.96.0.0/12`
 - `K0S_POD_CIDR` defaults to `10.244.0.0/16`
 - `K0S_SERVICE_CIDR` defaults to `10.96.0.0/12`
+- `TINKERBELL_DHCP_BIND_ADDR` defaults to `TINKERBELL_PUBLIC_IP`
 - `TINKERBELL_HOOKOS_ARCH` defaults to `x86_64`
 - `TINKERBELL_HOOKOS_KERNEL_VERSION` defaults to `6.6`
 - `TINKERBELL_HOOKOS_EXTENSION` defaults to `tar.gz`
@@ -42,12 +43,13 @@ The intended real-lab consumer passes:
 ```text
 TINKERBELL_PUBLIC_IP=10.10.20.1
 TINKERBELL_ARTIFACTS_FILE_SERVER=http://10.10.20.1:7173
+TINKERBELL_DHCP_BIND_ADDR=10.10.20.1
 TINKERBELL_DHCP_BIND_INTERFACE=eth1.20
 ```
 
-The VyOS-hosted bootstrap path leaves DHCP with VyOS/Kea. Tinkerbell's DHCP
-listener is disabled, while its HTTP, TFTP, gRPC, and SSH listeners bind to
-`TINKERBELL_PUBLIC_IP`.
+The VyOS-hosted bootstrap path leaves LAB_MGMT and LAB_OOB DHCP with VyOS/Kea.
+Tinkerbell owns DHCP/PXE on LAB_PROV and binds its HTTP, DHCP, TFTP, gRPC, and
+SSH listeners to `TINKERBELL_PUBLIC_IP`.
 
 For local smoke runs, set `TINKERBELL_DHCP_BIND_INTERFACE` to an interface that
 actually exists inside the disposable bootstrap container, such as `eth0`.
@@ -94,6 +96,7 @@ docker run -d \
   -p 6443:6443 \
   -e TINKERBELL_PUBLIC_IP=10.10.20.1 \
   -e TINKERBELL_ARTIFACTS_FILE_SERVER=http://10.10.20.1:7173 \
+  -e TINKERBELL_DHCP_BIND_ADDR=0.0.0.0 \
   -e TINKERBELL_DHCP_BIND_INTERFACE=eth0 \
   bootstrap-k0s:test
 ```

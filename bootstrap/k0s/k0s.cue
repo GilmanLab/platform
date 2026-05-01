@@ -9,6 +9,7 @@ cfgPodCIDR:             string @tag(pod_cidr)
 cfgServiceCIDR:         string @tag(service_cidr)
 cfgPublicIP:            string @tag(public_ip)
 cfgArtifactsFileServer: string @tag(artifacts_file_server)
+cfgDHCPBindAddr:        string @tag(dhcp_bind_addr)
 cfgDHCPBindInterface:   string @tag(dhcp_bind_interface)
 cfgHookOSArch:          string @tag(hookos_arch)
 cfgHookOSKernelVersion: string @tag(hookos_kernel_version)
@@ -52,8 +53,9 @@ cfgTrustedProxies: [for proxy in strings.Split(cfgTrustedProxiesCSV, ",") if str
 				bindAddr: "0.0.0.0"
 			}
 			smee: {
-				dhcpEnabled:                  false
+				dhcpEnabled:                  true
 				dhcpMode:                     cfgDHCPMode
+				dhcpBindAddr:                 cfgDHCPBindAddr
 				dhcpBindInterface:            cfgDHCPBindInterface
 				dhcpIPForPacket:              cfgPublicIP
 				dhcpTftpIP:                   cfgPublicIP
