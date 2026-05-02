@@ -10,7 +10,8 @@ the repository foundation each time.
 ## Current Projects
 
 - `bootstrap/argocd`, `bootstrap/cilium`, `bootstrap/kro`: reusable bootstrap chart wrappers published to GHCR
-- `bootstrap/k0s`: released bootstrap image for the temporary VyOS-hosted management cluster, published to `ghcr.io/gilmanlab/platform/bootstrap-k0s`
+- `bootstrap/k0s`: historical bootstrap image from the abandoned VyOS-hosted
+  management cluster path, pending a later cleanup decision
 - `services/dns-mirror`: Route 53 private-zone mirror daemon for the AWS subnet router
 
 ## Quick Start
