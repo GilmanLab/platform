@@ -60,7 +60,7 @@ package talos
 	// Version is the exact Talos Linux release to download.
 	version!: #TalosVersion
 	// SchematicID identifies the Image Factory schematic.
-	schematicID: *"376567988ad370138ad0c15e58e1dcefd698631a5d546e5f7c7e1a6d167663f3" | #SchematicID @go(SchematicID)
+	schematicID: *"376567988ad370138ad8b2698212367b8edcb69b5fd68c80be1f2ec7d603b4ba" | #SchematicID @go(SchematicID)
 	// Platform selects the Talos platform image.
 	platform: #Platform
 	// Arch selects the Talos image architecture.
