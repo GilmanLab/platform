@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/GilmanLab/platform/compare/schemas/lab/v0.2.0...schemas/lab/v0.2.1) (2026-05-03)
+
+
+### Bug Fixes
+
+* **schemas:** correct Talos default schematic ID ([#62](https://github.com/GilmanLab/platform/issues/62)) ([dc55a28](https://github.com/GilmanLab/platform/commit/dc55a28697a51670f500f7d71ef0ab5bae8258c8))
+
 ## [0.2.0](https://github.com/GilmanLab/platform/compare/schemas/lab/v0.1.0...schemas/lab/v0.2.0) (2026-05-03)
 
 
