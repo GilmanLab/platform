@@ -60,6 +60,8 @@ tasks:
   test:
     command: 'go test ./...'
     toolchains: 'system'
+    deps:
+      - 'schemas:generate-check'
     inputs:
       - '**/*.go'
       - 'go.mod'
@@ -71,7 +73,6 @@ tasks:
       - 'schemas:format'
       - 'schemas:tidy'
       - 'schemas:vet'
-      - 'schemas:generate-check'
       - 'schemas:test'
     options:
       cache: false
