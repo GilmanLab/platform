@@ -1,6 +1,5 @@
 projects:
   sources:
-    bootstrap-k0s: 'bootstrap/k0s'
     dns-mirror: 'services/dns-mirror'
     github-token-broker: 'services/github-token-broker'
     labctl: 'tools/labctl'

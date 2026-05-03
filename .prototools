@@ -1,6 +1,4 @@
 cue = "=0.16.1"
-hadolint = "=2.14.0"
 
 [plugins.tools]
 cue = "file://.moon/proto/cue.toml"
-hadolint = "file://.moon/proto/hadolint.toml"
