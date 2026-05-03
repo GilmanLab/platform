@@ -2,6 +2,8 @@ package talosimage
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
@@ -15,6 +17,12 @@ import (
 
 const (
 	fileModeDir = 0o755
+
+	// MaxBootImageBytes bounds the decompressed boot image to defend against
+	// upstream artifacts whose decompressed size is unexpectedly large.
+	MaxBootImageBytes int64 = 4 * 1024 * 1024 * 1024
+
+	sha256Suffix = ".sha256"
 )
 
 // Service builds Talos image artifacts.
@@ -55,11 +63,18 @@ func (s Service) Build(ctx context.Context, request Request) (Result, error) {
 	if err != nil {
 		return Result{}, err
 	}
-	err = s.downloadArchive(ctx, image.url, archivePath)
+
+	expectedSHA256, err := s.upstream.FetchSHA256(ctx, image.url+sha256Suffix)
+	if err != nil {
+		return Result{}, fmt.Errorf("fetch Talos image checksum: %w", err)
+	}
+
+	err = s.ensureCachedArchive(ctx, image.url, archivePath, expectedSHA256)
 	if err != nil {
 		return Result{}, err
 	}
-	err = s.writeBootImage(archivePath, paths.bootArtifactPath)
+
+	bootSHA256, err := s.writeBootImage(archivePath, paths.bootArtifactPath)
 	if err != nil {
 		return Result{}, err
 	}
@@ -68,20 +83,28 @@ func (s Service) Build(ctx context.Context, request Request) (Result, error) {
 	if err != nil {
 		return Result{}, err
 	}
-	if err := s.configDisk.Build(paths.configArtifactPath, payload); err != nil {
+	err = s.configDisk.Build(paths.configArtifactPath, payload)
+	if err != nil {
 		return Result{}, fmt.Errorf("build NoCloud cidata image %q: %w", paths.configArtifactPath, err)
 	}
 
+	configSHA256, err := s.hashFile(paths.configArtifactPath)
+	if err != nil {
+		return Result{}, fmt.Errorf("hash NoCloud cidata image %q: %w", paths.configArtifactPath, err)
+	}
+
 	return Result{
-		Name:               string(request.Config.Name),
-		BootArtifactPath:   paths.bootArtifactPath,
-		ConfigArtifactPath: paths.configArtifactPath,
-		SourceVersion:      image.version,
-		SourceURL:          image.url,
-		SourceSchematicID:  image.schematicID,
-		Platform:           image.platform,
-		Arch:               image.arch,
-		Format:             string(request.Config.Output.Format),
+		Name:                 string(request.Config.Name),
+		BootArtifactPath:     paths.bootArtifactPath,
+		BootArtifactSHA256:   bootSHA256,
+		ConfigArtifactPath:   paths.configArtifactPath,
+		ConfigArtifactSHA256: configSHA256,
+		SourceVersion:        image.version,
+		SourceURL:            image.url,
+		SourceSchematicID:    image.schematicID,
+		Platform:             image.platform,
+		Arch:                 image.arch,
+		Format:               string(request.Config.Output.Format),
 	}, nil
 }
 
@@ -119,14 +142,56 @@ func (s Service) prepareDownloadDirectory(archivePath string) error {
 	return nil
 }
 
-func (s Service) downloadArchive(ctx context.Context, url string, destination string) error {
+// ensureCachedArchive guarantees that destination contains the archive whose
+// SHA256 matches expected. A cached file with a matching digest is reused; a
+// cached file with a divergent digest is removed and redownloaded; a missing
+// destination triggers a fresh download.
+func (s Service) ensureCachedArchive(ctx context.Context, url, destination, expected string) error {
 	exists, err := s.files.IsFile(destination)
 	if err != nil {
 		return fmt.Errorf("check cached archive %q: %w", destination, err)
 	}
 	if exists {
-		return nil
+		actual, err := s.hashFile(destination)
+		if err != nil {
+			return fmt.Errorf("hash cached archive %q: %w", destination, err)
+		}
+		if actual == expected {
+			return nil
+		}
+		if err := s.files.Remove(destination); err != nil {
+			return fmt.Errorf("remove stale cached archive %q: %w", destination, err)
+		}
 	}
+
+	return s.downloadArchive(ctx, url, destination, expected)
+}
+
+// downloadArchive streams the archive into a sibling temp file, hashing as
+// it writes, and atomically renames into place only when the streamed digest
+// matches expected. A leftover temp file from a failed run is removed on
+// best effort; a stranded `.tmp-*` is harmless because subsequent runs
+// create new temp files with unique suffixes.
+func (s Service) downloadArchive(ctx context.Context, url, destination, expected string) error {
+	parent := filepath.Dir(destination)
+	tempName := "." + filepath.Base(destination) + ".tmp-*"
+
+	temp, err := s.files.CreateTemp(parent, tempName)
+	if err != nil {
+		return fmt.Errorf("create temporary archive in %q: %w", parent, err)
+	}
+	tempPath := temp.Name()
+
+	closed := false
+	committed := false
+	defer func() {
+		if !closed {
+			_ = temp.Close()
+		}
+		if !committed {
+			_ = s.files.Remove(tempPath)
+		}
+	}()
 
 	source, err := s.upstream.Download(ctx, url)
 	if err != nil {
@@ -134,42 +199,107 @@ func (s Service) downloadArchive(ctx context.Context, url string, destination st
 	}
 	defer source.Close()
 
-	target, err := s.files.Create(destination)
+	hasher := sha256.New()
+	_, err = io.Copy(io.MultiWriter(temp, hasher), source)
 	if err != nil {
-		return fmt.Errorf("create archive %q: %w", destination, err)
+		return fmt.Errorf("write temporary archive %q: %w", tempPath, err)
 	}
-	defer target.Close()
+	err = temp.Close()
+	if err != nil {
+		return fmt.Errorf("close temporary archive %q: %w", tempPath, err)
+	}
+	closed = true
 
-	if _, err := io.Copy(target, source); err != nil {
-		return fmt.Errorf("write archive %q: %w", destination, err)
+	actual := hex.EncodeToString(hasher.Sum(nil))
+	if actual != expected {
+		return fmt.Errorf("sha256 mismatch for %q: expected %s, got %s", url, expected, actual)
 	}
+
+	err = s.files.Rename(tempPath, destination)
+	if err != nil {
+		return fmt.Errorf("install archive %q: %w", destination, err)
+	}
+	committed = true
 
 	return nil
 }
 
-func (s Service) writeBootImage(archivePath string, bootArtifactPath string) error {
+// writeBootImage decompresses the cached xz archive into a temp file beside
+// bootArtifactPath, hashes the decompressed bytes, bounds the output to
+// MaxBootImageBytes, and atomically renames into place. The returned digest
+// is the lowercase hex SHA256 of the decompressed boot image.
+func (s Service) writeBootImage(archivePath, bootArtifactPath string) (string, error) {
 	archive, err := s.files.Open(archivePath)
 	if err != nil {
-		return fmt.Errorf("open compressed archive %q: %w", archivePath, err)
+		return "", fmt.Errorf("open compressed archive %q: %w", archivePath, err)
 	}
 	defer archive.Close()
 
 	raw, err := xz.NewReader(archive)
 	if err != nil {
-		return fmt.Errorf("read xz archive %q: %w", archivePath, err)
+		return "", fmt.Errorf("read xz archive %q: %w", archivePath, err)
 	}
 
-	target, err := s.files.Create(bootArtifactPath)
+	parent := filepath.Dir(bootArtifactPath)
+	tempName := "." + filepath.Base(bootArtifactPath) + ".tmp-*"
+
+	temp, err := s.files.CreateTemp(parent, tempName)
 	if err != nil {
-		return fmt.Errorf("create boot image %q: %w", bootArtifactPath, err)
+		return "", fmt.Errorf("create temporary boot image in %q: %w", parent, err)
 	}
-	defer target.Close()
+	tempPath := temp.Name()
 
-	if _, err := io.Copy(target, raw); err != nil {
-		return fmt.Errorf("decompress boot image %q: %w", bootArtifactPath, err)
+	closed := false
+	committed := false
+	defer func() {
+		if !closed {
+			_ = temp.Close()
+		}
+		if !committed {
+			_ = s.files.Remove(tempPath)
+		}
+	}()
+
+	hasher := sha256.New()
+	written, err := io.Copy(io.MultiWriter(temp, hasher), io.LimitReader(raw, MaxBootImageBytes+1))
+	if err != nil {
+		return "", fmt.Errorf("decompress boot image %q: %w", bootArtifactPath, err)
+	}
+	if written > MaxBootImageBytes {
+		return "", fmt.Errorf(
+			"decompressed boot image %q exceeds maximum size %d bytes",
+			bootArtifactPath,
+			MaxBootImageBytes,
+		)
+	}
+	err = temp.Close()
+	if err != nil {
+		return "", fmt.Errorf("close temporary boot image %q: %w", tempPath, err)
+	}
+	closed = true
+
+	err = s.files.Rename(tempPath, bootArtifactPath)
+	if err != nil {
+		return "", fmt.Errorf("install boot image %q: %w", bootArtifactPath, err)
+	}
+	committed = true
+
+	return hex.EncodeToString(hasher.Sum(nil)), nil
+}
+
+func (s Service) hashFile(path string) (string, error) {
+	source, err := s.files.Open(path)
+	if err != nil {
+		return "", fmt.Errorf("open %q: %w", path, err)
+	}
+	defer source.Close()
+
+	hasher := sha256.New()
+	if _, err := io.Copy(hasher, source); err != nil {
+		return "", fmt.Errorf("read %q: %w", path, err)
 	}
 
-	return nil
+	return hex.EncodeToString(hasher.Sum(nil)), nil
 }
 
 func (s Service) buildConfigDiskPayload(baseDir string, config schematalos.MachineConfig) (ConfigDiskPayload, error) {
@@ -273,7 +403,7 @@ func resolvePaths(baseDir string, output schematalos.ImageOutput) (buildPaths, e
 	}, nil
 }
 
-func resolvePath(baseDir string, path string) (string, error) {
+func resolvePath(baseDir, path string) (string, error) {
 	if filepath.IsAbs(path) {
 		return filepath.Clean(path), nil
 	}

@@ -57,7 +57,7 @@ func New(input Input) Dependencies {
 
 	httpClient := input.HTTPClient
 	if httpClient == nil {
-		httpClient = http.DefaultClient
+		httpClient = httpupstream.NewHTTPClient()
 	}
 	files := localfs.New()
 	broker := githubbroker.NewProvider(nil)

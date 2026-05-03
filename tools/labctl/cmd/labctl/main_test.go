@@ -2,6 +2,8 @@ package main
 
 import (
 	"bytes"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -37,12 +39,18 @@ func setupTestScript(env *testscript.Env) error {
 	if err != nil {
 		return err
 	}
+	talosArchiveSHA256 := sha256.Sum256(talosArchive)
+	talosArchiveDigest := hex.EncodeToString(talosArchiveSHA256[:])
+	talosSidecar := []byte(talosArchiveDigest + "  nocloud-amd64.raw.xz\n")
+
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/repos/GilmanLab/secrets/contents/network/keycloak.sops.yaml":
 			handleSecretFixture(env, w, r)
 		case "/image/" + defaultTalosSchematicID + "/v1.13.0/nocloud-amd64.raw.xz":
 			_, _ = w.Write(talosArchive)
+		case "/image/" + defaultTalosSchematicID + "/v1.13.0/nocloud-amd64.raw.xz.sha256":
+			_, _ = w.Write(talosSidecar)
 		default:
 			http.Error(w, fmt.Sprintf("unexpected path %s", r.URL.Path), http.StatusNotFound)
 		}
