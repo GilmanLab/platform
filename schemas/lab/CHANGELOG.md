@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.0](https://github.com/GilmanLab/platform/compare/schemas/lab/v0.2.1...schemas/lab/v0.3.0) (2026-05-03)
+
+
+### Features
+
+* **schemas:** default Talos image build output and tighten dir constraint ([#67](https://github.com/GilmanLab/platform/issues/67)) ([d2d036d](https://github.com/GilmanLab/platform/commit/d2d036db9fdd20b9347d29d61dc4a9b774dc0618))
+
 ## [0.2.1](https://github.com/GilmanLab/platform/compare/schemas/lab/v0.2.0...schemas/lab/v0.2.1) (2026-05-03)
 
 
