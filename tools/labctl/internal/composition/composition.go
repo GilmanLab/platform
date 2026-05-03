@@ -9,11 +9,14 @@ import (
 	"github.com/gilmanlab/platform/tools/labctl/internal/adapters/httpupstream"
 	"github.com/gilmanlab/platform/tools/labctl/internal/adapters/incusosconfig"
 	"github.com/gilmanlab/platform/tools/labctl/internal/adapters/localfs"
+	"github.com/gilmanlab/platform/tools/labctl/internal/adapters/nocloudcidata"
 	"github.com/gilmanlab/platform/tools/labctl/internal/adapters/secretslocal"
 	"github.com/gilmanlab/platform/tools/labctl/internal/adapters/sopsdecrypt"
+	"github.com/gilmanlab/platform/tools/labctl/internal/adapters/talosconfig"
 	"github.com/gilmanlab/platform/tools/labctl/internal/adapters/yamldoc"
 	"github.com/gilmanlab/platform/tools/labctl/internal/app/incusosimage"
 	appsecrets "github.com/gilmanlab/platform/tools/labctl/internal/app/secrets"
+	"github.com/gilmanlab/platform/tools/labctl/internal/app/talosimage"
 	appversion "github.com/gilmanlab/platform/tools/labctl/internal/app/version"
 )
 
@@ -37,6 +40,10 @@ type Dependencies struct {
 	IncusOSImage incusosimage.Service
 	// IncusOSConfig validates IncusOS image build input.
 	IncusOSConfig incusosconfig.Validator
+	// TalosImage builds Talos bootstrap image artifacts.
+	TalosImage talosimage.Service
+	// TalosConfig validates Talos image build input.
+	TalosConfig talosconfig.Validator
 }
 
 // New wires app services to their concrete adapters.
@@ -70,5 +77,11 @@ func New(input Input) Dependencies {
 			Files:    files,
 		}),
 		IncusOSConfig: incusosconfig.New(),
+		TalosImage: talosimage.NewService(talosimage.Dependencies{
+			Upstream:   httpupstream.New(httpClient),
+			Files:      files,
+			ConfigDisk: nocloudcidata.New(),
+		}),
+		TalosConfig: talosconfig.New(),
 	}
 }

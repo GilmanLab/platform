@@ -12,6 +12,7 @@ import (
 	"github.com/gilmanlab/platform/tools/labctl/internal/adapters/secretrefs"
 	"github.com/gilmanlab/platform/tools/labctl/internal/app/incusosimage"
 	appsecrets "github.com/gilmanlab/platform/tools/labctl/internal/app/secrets"
+	"github.com/gilmanlab/platform/tools/labctl/internal/app/talosimage"
 	"github.com/gilmanlab/platform/tools/labctl/internal/composition"
 )
 
@@ -23,6 +24,18 @@ type imageBuildOutput struct {
 	SourceVersion string `json:"sourceVersion"`
 	SourceURL     string `json:"sourceURL"`
 	SourceSHA256  string `json:"sourceSHA256"`
+}
+
+type talosImageBuildOutput struct {
+	Name               string `json:"name"`
+	BootArtifactPath   string `json:"bootArtifactPath"`
+	ConfigArtifactPath string `json:"configArtifactPath"`
+	SourceVersion      string `json:"sourceVersion"`
+	SourceURL          string `json:"sourceURL"`
+	SourceSchematicID  string `json:"sourceSchematicID"`
+	Platform           string `json:"platform"`
+	Arch               string `json:"arch"`
+	Format             string `json:"format"`
 }
 
 type imageBuildSecretsFlags struct {
@@ -40,6 +53,7 @@ func newBootstrapCommand(deps composition.Dependencies, opts Options, flags *roo
 	}
 
 	cmd.AddCommand(newBootstrapIncusOSCommand(deps, opts, flags))
+	cmd.AddCommand(newBootstrapTalosCommand(deps, opts, flags))
 
 	return cmd
 }
@@ -138,6 +152,67 @@ func newBootstrapIncusOSImageBuildCommand(
 	return cmd
 }
 
+func newBootstrapTalosCommand(deps composition.Dependencies, opts Options, flags *rootFlags) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "talos",
+		Short: "Build Talos bootstrap artifacts",
+	}
+
+	cmd.AddCommand(newBootstrapTalosImageCommand(deps, opts, flags))
+
+	return cmd
+}
+
+func newBootstrapTalosImageCommand(deps composition.Dependencies, opts Options, flags *rootFlags) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "image",
+		Short: "Build Talos images",
+	}
+
+	cmd.AddCommand(newBootstrapTalosImageBuildCommand(deps, opts, flags))
+
+	return cmd
+}
+
+func newBootstrapTalosImageBuildCommand(
+	deps composition.Dependencies,
+	opts Options,
+	flags *rootFlags,
+) *cobra.Command {
+	var jsonOutput bool
+
+	cmd := &cobra.Command{
+		Use:   "build <config.yaml>",
+		Short: "Build Talos boot and NoCloud images",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			input, err := readImageBuildInput(args[0], opts)
+			if err != nil {
+				return err
+			}
+
+			config, err := deps.TalosConfig.ValidateYAML(input.name, input.data)
+			if err != nil {
+				return err
+			}
+
+			result, err := deps.TalosImage.Build(cmd.Context(), talosimage.Request{
+				Config:  config,
+				BaseDir: input.baseDir,
+			})
+			if err != nil {
+				return err
+			}
+
+			return renderTalosImageBuildResult(result, opts, flags, jsonOutput)
+		},
+	}
+
+	cmd.Flags().BoolVar(&jsonOutput, "json", false, "print build result as JSON")
+
+	return cmd
+}
+
 type imageBuildInput struct {
 	name    string
 	data    []byte
@@ -197,4 +272,31 @@ func renderImageBuildResult(result incusosimage.Result, opts Options, flags *roo
 	}
 
 	return writeLine(opts.Stdout, "%s", result.ArtifactPath)
+}
+
+func renderTalosImageBuildResult(result talosimage.Result, opts Options, flags *rootFlags, jsonOutput bool) error {
+	output := talosImageBuildOutput{
+		Name:               result.Name,
+		BootArtifactPath:   result.BootArtifactPath,
+		ConfigArtifactPath: result.ConfigArtifactPath,
+		SourceVersion:      result.SourceVersion,
+		SourceURL:          result.SourceURL,
+		SourceSchematicID:  result.SourceSchematicID,
+		Platform:           result.Platform,
+		Arch:               result.Arch,
+		Format:             result.Format,
+	}
+
+	if jsonOutput {
+		return writeJSON(opts.Stdout, output)
+	}
+	if flags.quiet {
+		return nil
+	}
+
+	if err := writeLine(opts.Stdout, "%s", result.BootArtifactPath); err != nil {
+		return err
+	}
+
+	return writeLine(opts.Stdout, "%s", result.ConfigArtifactPath)
 }
