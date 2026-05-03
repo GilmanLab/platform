@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.3.0](https://github.com/GilmanLab/platform/compare/labctl-v0.2.0...labctl-v0.3.0) (2026-05-03)
+
+
+### Features
+
+* **labctl:** build Talos bootstrap images ([#64](https://github.com/GilmanLab/platform/issues/64)) ([076655b](https://github.com/GilmanLab/platform/commit/076655bb92b79e9c337e807991249647e3c15024))
+* **labctl:** harden Talos image build reliability ([#65](https://github.com/GilmanLab/platform/issues/65)) ([8b983ce](https://github.com/GilmanLab/platform/commit/8b983cebfc9fe78593064059ac0a8d0bfe07ef36))
+* **labctl:** protect Talos cidata as secret material and size dynamically ([#66](https://github.com/GilmanLab/platform/issues/66)) ([1c3160a](https://github.com/GilmanLab/platform/commit/1c3160a7a5df57664deac3a4c6e5d03dc48b8d17))
+* **schemas:** add Talos image build schema ([#60](https://github.com/GilmanLab/platform/issues/60)) ([4340279](https://github.com/GilmanLab/platform/commit/434027956e7d5fb7dd72287047926ab99d8a356a))
+* **schemas:** default Talos image build output and tighten dir constraint ([#67](https://github.com/GilmanLab/platform/issues/67)) ([d2d036d](https://github.com/GilmanLab/platform/commit/d2d036db9fdd20b9347d29d61dc4a9b774dc0618))
+
 ## [0.2.0](https://github.com/GilmanLab/platform/compare/labctl-v0.1.0...labctl-v0.2.0) (2026-04-30)
 
 
