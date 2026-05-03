@@ -43,6 +43,11 @@ stdout '"arch":"amd64"'
 stdout '"format":"img"'
 ! stderr .
 
+exec labctl bootstrap talos image build talos-minimal.yaml
+exists .state/images/talos-boot.img
+exists .state/images/talos-cidata.img
+! stderr .
+
 -- invalid.yaml --
 name: talos-test
 source:

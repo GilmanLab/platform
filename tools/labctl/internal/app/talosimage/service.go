@@ -390,7 +390,7 @@ type buildPaths struct {
 }
 
 func resolvePaths(baseDir string, output schematalos.ImageOutput) (buildPaths, error) {
-	outputDir, err := resolvePath(baseDir, string(output.Dir))
+	outputDir, err := resolvePath(baseDir, output.Dir)
 	if err != nil {
 		return buildPaths{}, err
 	}
@@ -398,8 +398,8 @@ func resolvePaths(baseDir string, output schematalos.ImageOutput) (buildPaths, e
 	return buildPaths{
 		downloadsDir:       filepath.Join(filepath.Dir(outputDir), "downloads", "talos"),
 		outputDir:          outputDir,
-		bootArtifactPath:   filepath.Join(outputDir, string(output.BootArtifactName)),
-		configArtifactPath: filepath.Join(outputDir, string(output.ConfigArtifactName)),
+		bootArtifactPath:   filepath.Join(outputDir, output.BootArtifactName),
+		configArtifactPath: filepath.Join(outputDir, output.ConfigArtifactName),
 	}, nil
 }
 

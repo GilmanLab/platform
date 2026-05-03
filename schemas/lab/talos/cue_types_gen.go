@@ -91,17 +91,20 @@ type MachineConfig struct {
 
 // ImageOutput describes the local artifacts produced by the build.
 type ImageOutput struct {
-	// Dir is the output directory for generated artifacts.
-	Dir NonEmptyString `json:"dir"`
+	// Dir is the output directory for generated artifacts. Must be a
+	// repo-relative path; defaults to ".state/images".
+	Dir string `json:"dir"`
 
 	// Format is the local artifact format.
 	Format OutputFormat `json:"format"`
 
-	// BootArtifactName is the Talos boot disk IMG filename.
-	BootArtifactName ArtifactName `json:"bootArtifactName"`
+	// BootArtifactName is the Talos boot disk IMG filename. Defaults to
+	// "talos-boot.img".
+	BootArtifactName string `json:"bootArtifactName"`
 
-	// ConfigArtifactName is the NoCloud cidata IMG filename.
-	ConfigArtifactName ArtifactName `json:"configArtifactName"`
+	// ConfigArtifactName is the NoCloud cidata IMG filename. Defaults to
+	// "talos-cidata.img".
+	ConfigArtifactName string `json:"configArtifactName"`
 }
 
 // ImageBuild is the top-level Talos image download and config packaging contract.
@@ -115,6 +118,7 @@ type ImageBuild struct {
 	// Config describes Talos machine configuration delivery.
 	Config MachineConfig `json:"config"`
 
-	// Output describes the local artifacts produced by the build.
+	// Output describes the local artifacts produced by the build. Every
+	// field has a default, so authors can omit the block entirely.
 	Output ImageOutput `json:"output"`
 }
