@@ -1,0 +1,57 @@
+exec labctl bootstrap talos image build --help
+stdout 'Build Talos boot and NoCloud images'
+stdout '--json'
+! stderr .
+
+! exec labctl bootstrap talos image build invalid.yaml
+stderr 'validate invalid.yaml'
+stderr 'format must be img'
+! stdout .
+
+stdin invalid.yaml
+! exec labctl bootstrap talos image build -
+stderr 'validate stdin.yaml'
+stderr 'format must be img'
+! stdout .
+
+stdin talos-valid.yaml
+exec labctl bootstrap talos image build -
+stdout 'talos-boot.img'
+stdout 'talos-cidata.img'
+! stderr .
+
+exec labctl bootstrap talos image build talos-valid.yaml
+stdout 'talos-boot.img'
+stdout 'talos-cidata.img'
+exists .state/images/talos-boot.img
+exists .state/images/talos-cidata.img
+exists .state/downloads/talos/376567988ad370138ad8b2698212367b8edcb69b5fd68c80be1f2ec7d603b4ba/v1.13.0/nocloud-amd64.raw.xz
+! stderr .
+
+exec labctl bootstrap talos image build --json talos-valid.yaml
+stdout '"name":"talos-test"'
+stdout '"bootArtifactPath":'
+stdout '"configArtifactPath":'
+stdout '"sourceVersion":"v1.13.0"'
+stdout '"sourceURL":'
+stdout 'nocloud-amd64.raw.xz'
+stdout '"sourceSchematicID":"376567988ad370138ad8b2698212367b8edcb69b5fd68c80be1f2ec7d603b4ba"'
+stdout '"platform":"nocloud"'
+stdout '"arch":"amd64"'
+stdout '"format":"img"'
+! stderr .
+
+-- invalid.yaml --
+name: talos-test
+source:
+  version: v1.13.0
+config:
+  userData:
+    path: controlplane.yaml
+  metaData:
+    localHostname: bootstrap-controlplane-1
+output:
+  dir: .state/images
+  format: iso
+  bootArtifactName: talos-boot.img
+  configArtifactName: talos-cidata.img
