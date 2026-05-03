@@ -98,3 +98,22 @@ output:
   configArtifactName: talos-cidata.img
 `
 }
+
+func TestValidateYAMLAppliesOutputDefaults(t *testing.T) {
+	minimal := `name: talos-test
+source:
+  version: v1.13.0
+config:
+  userData:
+    path: controlplane.yaml
+  metaData:
+    localHostname: bootstrap-controlplane-1
+`
+	config, err := talosconfig.New().ValidateYAML("minimal.yaml", []byte(minimal))
+
+	require.NoError(t, err)
+	assert.Equal(t, ".state/images", config.Output.Dir)
+	assert.Equal(t, "talos-boot.img", config.Output.BootArtifactName)
+	assert.Equal(t, "talos-cidata.img", config.Output.ConfigArtifactName)
+	assert.Equal(t, "img", string(config.Output.Format))
+}

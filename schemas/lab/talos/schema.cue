@@ -97,14 +97,17 @@ package talos
 #ImageOutput: {
 	@go(ImageOutput)
 
-	// Dir is the output directory for generated artifacts.
-	dir!: #NonEmptyString
+	// Dir is the output directory for generated artifacts. Must be a
+	// repo-relative path; defaults to ".state/images".
+	dir: *".state/images" | #RelativePath
 	// Format is the local artifact format.
 	format: #OutputFormat
-	// BootArtifactName is the Talos boot disk IMG filename.
-	bootArtifactName!: #ArtifactName @go(BootArtifactName)
-	// ConfigArtifactName is the NoCloud cidata IMG filename.
-	configArtifactName!: #ArtifactName @go(ConfigArtifactName)
+	// BootArtifactName is the Talos boot disk IMG filename. Defaults to
+	// "talos-boot.img".
+	bootArtifactName: *"talos-boot.img" | #ArtifactName @go(BootArtifactName)
+	// ConfigArtifactName is the NoCloud cidata IMG filename. Defaults to
+	// "talos-cidata.img".
+	configArtifactName: *"talos-cidata.img" | #ArtifactName @go(ConfigArtifactName)
 }
 
 // ImageBuild is the top-level Talos image download and config packaging contract.
@@ -117,6 +120,7 @@ package talos
 	source!: #ImageSource
 	// Config describes Talos machine configuration delivery.
 	config!: #MachineConfig
-	// Output describes the local artifacts produced by the build.
-	output!: #ImageOutput
+	// Output describes the local artifacts produced by the build. Every
+	// field has a default, so authors can omit the block entirely.
+	output: #ImageOutput
 }

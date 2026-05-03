@@ -93,6 +93,20 @@ output:
 		return err
 	}
 
+	minimalConfig := fmt.Appendf(nil, `name: talos-test
+source:
+  factoryURL: %s
+  version: v1.13.0
+config:
+  userData:
+    path: controlplane.yaml
+  metaData:
+    localHostname: bootstrap-controlplane-1
+`, server.URL)
+	if err := os.WriteFile(filepath.Join(env.WorkDir, "talos-minimal.yaml"), minimalConfig, 0o600); err != nil {
+		return err
+	}
+
 	return nil
 }
 
