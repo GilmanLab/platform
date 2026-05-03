@@ -27,15 +27,17 @@ type imageBuildOutput struct {
 }
 
 type talosImageBuildOutput struct {
-	Name               string `json:"name"`
-	BootArtifactPath   string `json:"bootArtifactPath"`
-	ConfigArtifactPath string `json:"configArtifactPath"`
-	SourceVersion      string `json:"sourceVersion"`
-	SourceURL          string `json:"sourceURL"`
-	SourceSchematicID  string `json:"sourceSchematicID"`
-	Platform           string `json:"platform"`
-	Arch               string `json:"arch"`
-	Format             string `json:"format"`
+	Name                 string `json:"name"`
+	BootArtifactPath     string `json:"bootArtifactPath"`
+	BootArtifactSHA256   string `json:"bootArtifactSHA256"`
+	ConfigArtifactPath   string `json:"configArtifactPath"`
+	ConfigArtifactSHA256 string `json:"configArtifactSHA256"`
+	SourceVersion        string `json:"sourceVersion"`
+	SourceURL            string `json:"sourceURL"`
+	SourceSchematicID    string `json:"sourceSchematicID"`
+	Platform             string `json:"platform"`
+	Arch                 string `json:"arch"`
+	Format               string `json:"format"`
 }
 
 type imageBuildSecretsFlags struct {
@@ -276,15 +278,17 @@ func renderImageBuildResult(result incusosimage.Result, opts Options, flags *roo
 
 func renderTalosImageBuildResult(result talosimage.Result, opts Options, flags *rootFlags, jsonOutput bool) error {
 	output := talosImageBuildOutput{
-		Name:               result.Name,
-		BootArtifactPath:   result.BootArtifactPath,
-		ConfigArtifactPath: result.ConfigArtifactPath,
-		SourceVersion:      result.SourceVersion,
-		SourceURL:          result.SourceURL,
-		SourceSchematicID:  result.SourceSchematicID,
-		Platform:           result.Platform,
-		Arch:               result.Arch,
-		Format:             result.Format,
+		Name:                 result.Name,
+		BootArtifactPath:     result.BootArtifactPath,
+		BootArtifactSHA256:   result.BootArtifactSHA256,
+		ConfigArtifactPath:   result.ConfigArtifactPath,
+		ConfigArtifactSHA256: result.ConfigArtifactSHA256,
+		SourceVersion:        result.SourceVersion,
+		SourceURL:            result.SourceURL,
+		SourceSchematicID:    result.SourceSchematicID,
+		Platform:             result.Platform,
+		Arch:                 result.Arch,
+		Format:               result.Format,
 	}
 
 	if jsonOutput {

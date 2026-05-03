@@ -31,7 +31,9 @@ exists .state/downloads/talos/376567988ad370138ad8b2698212367b8edcb69b5fd68c80be
 exec labctl bootstrap talos image build --json talos-valid.yaml
 stdout '"name":"talos-test"'
 stdout '"bootArtifactPath":'
+stdout '"bootArtifactSHA256":"[0-9a-f]{64}"'
 stdout '"configArtifactPath":'
+stdout '"configArtifactSHA256":"[0-9a-f]{64}"'
 stdout '"sourceVersion":"v1.13.0"'
 stdout '"sourceURL":'
 stdout 'nocloud-amd64.raw.xz'
